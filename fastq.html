@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="GreenGut turns poultry gut qPCR results into a gut health report card compared with healthy chicks.">
-<title>GreenGut FASTQ Build</title>
+<title>GreenGut qPCR Gut Health Report (FASTQ reference)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -239,6 +239,24 @@ svg.chart text{font-family:var(--f-data)}
 .inv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .inv div{border:1px solid var(--s-rule);border-radius:4px;padding:8px 10px}
 .inv dt{font-size:10px;color:var(--s-ink-2)} .inv dd{margin:2px 0 0;font-weight:600;font-size:13px}
+
+/* v6 additions */
+.dot.na{background:#8A968F}
+.status.na{background:#6E7A73}
+.chip-s.qc{background:#6B5B95}
+.msg table.errs{width:100%;border-collapse:collapse;margin-top:8px;font-size:.8rem;background:var(--surface)}
+.msg table.errs th,.msg table.errs td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--rule);vertical-align:top}
+.msg table.errs td:first-child{font-family:var(--f-data);white-space:nowrap}
+.patho{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.patho div{border:1px solid var(--s-rule);border-left:4px solid #8A968F;border-radius:3px;padding:7px 10px;display:flex;flex-direction:column;gap:2px;font-size:11px}
+.patho div.good{border-left-color:#2F7A4E}.patho div.watch{border-left-color:#A86E0B}.patho div.alert{border-left-color:#AE3B2B;background:#FBEDEA}
+.patho b{font-size:13px}
+.patho span{color:var(--s-ink-2)}
+.warn.alertw{border-left-color:#AE3B2B;background:#FBEDEA}
+.refbox dd .note{display:block;font-weight:400}
+.cal{font-size:.8rem;color:var(--ink-2);border-left:3px solid var(--yolk);padding-left:8px}
+.ver{font-family:var(--f-data);font-size:.74rem;color:var(--ink-2)}
+.s-foot .mono{text-align:right;line-height:1.35;flex:0 0 auto;white-space:nowrap}
 </style>
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
@@ -259,7 +277,7 @@ svg.chart text{font-family:var(--f-data)}
   <div class="layout">
     <aside class="intake">
       <section class="box" aria-labelledby="h-up">
-        <h2 id="h-up">Get your report card</h2>
+        <h2 id="h-up">Get your report</h2>
         <div class="drop" id="drop" tabindex="0" role="button" aria-describedby="drop-help">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
           <strong>Upload your qPCR results</strong>
@@ -276,12 +294,9 @@ svg.chart text{font-family:var(--f-data)}
 
       <section class="box refbox" aria-labelledby="h-ref">
         <h2 id="h-ref">Compared with</h2>
-        <dl>
-          <dt>Birds</dt><dd>Healthy chicks, 0–21 days</dd>
-          <dt>Samples</dt><dd id="ref-n">–</dd>
-          <dt>Sources</dt><dd id="ref-src">–</dd>
-        </dl>
-        <p class="note">The first three weeks are when a chick's gut bacteria settle, and when a change matters most.</p>
+        <dl id="ref-dl"></dl>
+        <p class="cal" id="ref-cal"></p>
+        <p class="note">Age range covered: 0–21 days. Samples outside it are compared only with a warning.</p>
       </section>
 
       <section class="box" id="batch-box" hidden aria-labelledby="h-batch">
@@ -293,25 +308,25 @@ svg.chart text{font-family:var(--f-data)}
 
     <main class="story">
       <section class="hero">
-        <h1>Read your flock's qPCR results against healthy chicks.</h1>
-        <p>Upload the Ct values your lab returns for 20 gut bacteria. GreenGut turns them into estimated shares of total bacteria, places each one among <span id="n-ref">–</span> healthy chicks aged 0 to 21 days, and builds a three-page report card for you or your vet.</p>
+        <h1>GreenGut qPCR Gut Health Report</h1>
+        <p>Upload the Ct values your lab returns for 20 bacterial targets/groups. GreenGut converts each one into an estimated load relative to the universal 16S assay, places it among <span id="n-ref">–</span> healthy reference chickens aged 0 to 21 days, and builds a three-page report for you or your vet. Food-safety pathogens are reported separately from the balance score.</p>
         <div class="amp">
           <figure>
             <div id="amp-chart"></div>
             <figcaption class="cap" id="amp-cap"></figcaption>
           </figure>
           <aside>
-            <h3>From Ct to share of the gut</h3>
+            <h3>From Ct to load relative to 16S</h3>
             <div id="amp-table"></div>
-            <p class="cap">A curve that crosses the threshold one cycle earlier means about twice as much of that bacterium.</p>
+            <p class="cap">A curve that crosses the threshold one cycle earlier means about twice as much of that target. The 20 loads are not forced to add up to 100%.</p>
           </aside>
         </div>
       </section>
 
       <section class="sec" id="explore">
         <header>
-          <h2>What healthy chicks carry</h2>
-          <p>How often each bacterium turns up in healthy chicks and how much of it there usually is. Pick a bacterium to see every chick where it was measured.</p>
+          <h2>The healthy reference</h2>
+          <p>How often each target turns up in healthy reference chickens and its usual load when quantified. Pick a target to see every reference value. Only quantified values are used; ND, &lt;LOD and &lt;LOQ are never treated as zero.</p>
         </header>
         <div class="panel">
           <div class="ex-controls" role="group" aria-label="Show" id="ex-mode"></div>
@@ -320,7 +335,7 @@ svg.chart text{font-family:var(--f-data)}
             <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
               <div class="ex-desc" id="ex-desc"></div>
               <div class="ex-stats" id="ex-stats"></div>
-              <div><h3>Every chick where it was measured</h3><div id="ex-strip"></div><p class="cap" id="ex-cap"></p></div>
+              <div><h3>Every quantified reference value</h3><div id="ex-strip"></div><p class="cap" id="ex-cap"></p></div>
             </div>
           </div>
         </div>
@@ -329,19 +344,20 @@ svg.chart text{font-family:var(--f-data)}
       <section class="sec" id="send">
         <header>
           <h2>What to send</h2>
-          <p>One CSV, one row per sample, saved from Excel. Start from the blank form so the column names match. The example values below come from our example file.</p>
+          <p>One CSV, one row per sample, saved from Excel. Start from the blank form so the column names match. The file is checked before processing; any problem is listed with its row number and column name. The example values below come from our example file.</p>
         </header>
         <div class="spec">
           <table>
             <thead><tr><th>Column</th><th>Example</th><th>What goes in it</th></tr></thead>
             <tbody id="spec-body">
               <tr data-c="Sample_ID"><td>Sample_ID</td><td></td><td>Your own label for the sample</td></tr>
-              <tr data-c="Age_Days"><td>Age_Days</td><td></td><td>Age of the flock in days. The comparison covers 0 to 21 days.</td></tr>
-              <tr data-c="Total_Bacteria_Ct_1|Total_Bacteria_Ct_2"><td>Total_Bacteria_Ct_1, _2</td><td></td><td>The total-bacteria (16S) assay in duplicate. Every other bacterium is expressed against it.</td></tr>
-              <tr data-c="Lactobacillus_Ct_1|Lactobacillus_Ct_2"><td>Lactobacillus_Ct_1, _2</td><td></td><td>One duplicate pair for each of the 20 bacteria. Replicates more than 0.5 cycles apart are flagged.</td></tr>
-              <tr data-c="Lactobacillus_Efficiency_pct"><td>Lactobacillus_Efficiency_pct</td><td></td><td>Assay efficiency. 90 to 110 is expected; 100 is assumed if left empty.</td></tr>
+              <tr data-c="Age_Days"><td>Age_Days</td><td></td><td>Required. Exact age in days; used for the age-match confidence. The reference covers 0 to 21 days.</td></tr>
+              <tr data-c="Total_Bacteria_Ct_1|Total_Bacteria_Ct_2"><td>Total_Bacteria_Ct_1, _2</td><td></td><td>Universal 16S (total bacteria) assay in duplicate. Every target is expressed as a load relative to it.</td></tr>
+              <tr data-c="Lactobacillus_Ct_1|Lactobacillus_Ct_2"><td>Lactobacillus_Ct_1, _2</td><td></td><td>One duplicate pair for each of the 20 targets. Replicates more than 0.5 Ct apart are flagged and excluded from the score.</td></tr>
+              <tr data-c="Lactobacillus_Efficiency_pct"><td>Lactobacillus_Efficiency_pct</td><td></td><td>Required for every quantified target. 90 to 110 is expected; an empty value is never assumed to be 100.</td></tr>
               <tr data-c="Salmonella_Ct_1"><td>Salmonella_Ct_1</td><td></td><td>Write ND, &lt;LOD or &lt;LOQ exactly as the lab reports it. These are never counted as zero.</td></tr>
-              <tr data-c="Negative_Control_Ct|Extraction_Control_Ct"><td>Negative_Control_Ct, Extraction_Control_Ct</td><td></td><td>Amplification before cycle 35 in either blank is reported as possible contamination.</td></tr>
+              <tr data-c="Negative_Control_Ct|Extraction_Control_Ct"><td>Negative_Control_Ct, Extraction_Control_Ct</td><td></td><td>Amplification before cycle 35 in either blank fails QC and stops the score.</td></tr>
+              <tr data-c="Positive_Control_Ct|Inhibition_Control_Shift_Ct"><td>Positive_Control_Ct, Inhibition_Control_Shift_Ct</td><td></td><td>The positive control must amplify; an inhibition (spike-in) shift above 1 Ct fails QC. Each control is checked separately.</td></tr>
               <tr data-c="Probiotic|Antibiotic|FCR"><td>Probiotic, Antibiotic, FCR</td><td></td><td>Optional flock details. They are printed on the card beside the result.</td></tr>
             </tbody>
           </table>
@@ -351,64 +367,75 @@ svg.chart text{font-family:var(--f-data)}
       <section class="sec" id="card-info">
         <header>
           <h2>What comes back</h2>
-          <p>A three-page report card for each sample, saved as a PDF. Your file is read in your browser and is not uploaded anywhere.</p>
+          <p>A three-page report for each sample, saved as a PDF that records the platform, algorithm, baseline and assay panel versions. Your file is read in your browser and is not uploaded anywhere.</p>
         </header>
         <div class="pages">
-          <div><span class="pn">Page 1</span><h3>Score and verdict</h3><p>A gut balance score from 0 to 100, where it falls among healthy chicks, a dysbiosis risk level and a suggested next step.</p></div>
-          <div><span class="pn">Page 2</span><h3>Every bacterium</h3><p>Each amount drawn against the healthy-chick range, with its percentile and a status: in range, keep an eye on it, or needs attention.</p></div>
-          <div><span class="pn">Page 3</span><h3>Flags and lab checks</h3><p>What each flagged bacterium usually points to, panel diversity, similarity to healthy chicks, and the replicate and control checks.</p></div>
+          <div><span class="pn">Page 1</span><h3>Score and verdict</h3><p>Microbiome Balance Score (0 to 100), its place among healthy chickens, dysbiosis risk, age-match confidence, and a separate food-safety pathogen panel. No score is given if lab QC fails.</p></div>
+          <div><span class="pn">Page 2</span><h3>Every target</h3><p>Each load drawn against the P10–P90 reference range, with its percentile, the reference counts (quantified, detected, total) and a status.</p></div>
+          <div><span class="pn">Page 3</span><h3>Flags and lab checks</h3><p>What each flagged target usually points to, target panel coverage, standardized panel distance, every control checked separately, and the reference details.</p></div>
         </div>
         <div class="tryrow">
-          <p>Want to see one first? The example file holds three flocks: one in good shape, one to watch and one that needs attention.</p>
-          <button class="btn yolk" id="try-2">Show the example report card</button><button class="btn alt" id="dl-example-2">Download the example file</button>
+          <p>Want to see one first? The example file holds four samples, including one that fails lab QC and therefore gets no score.</p>
+          <button class="btn yolk" id="try-2">Show the example report</button><button class="btn alt" id="dl-example-2">Download the example file</button>
         </div>
       </section>
 
       <section class="sec" id="report" hidden>
         <header>
-          <div class="toolbar"><h2 id="report-title">Report card</h2><button class="btn yolk" id="dl-pdf">Download report card (PDF)</button></div>
+          <div class="toolbar"><h2 id="report-title">Report</h2><button class="btn yolk" id="dl-pdf">Download report (PDF)</button></div>
           <p id="report-sub"></p>
         </header>
         <div class="sheetscale"><div class="sheets" id="sheets"></div></div>
       </section>
 
-      <p class="foot">GreenGut is an early research prototype. The healthy-chick reference comes from published scientific datasets (<span id="ref-build"></span>) and will be replaced by field samples as they arrive. The report card describes a sample; it does not diagnose disease or replace your veterinarian.</p>
+      <p class="foot"><b>Prototype research reference.</b> The healthy reference comes from published scientific datasets (<span id="ref-build"></span>) and has not yet been calibrated against qPCR. It will be replaced by a real qPCR baseline from field samples; a commercial version will follow only after validation against FCR, weight, mortality and clinical status. The report describes a sample; it does not diagnose disease or replace your veterinarian.<br><span class="ver" id="ver"></span></p>
     </main>
   </div>
 </div>
 <div class="tip" id="tip" hidden></div>
-<script>window.GG_REF={"taxa":["Lactobacillus","Bifidobacterium","Enterococcus","Streptococcus","Bacteroides","Prevotella","Alistipes","Faecalibacterium","Butyricicoccus","Ruminococcaceae","Lachnospiraceae","Blautia","Clostridium","Escherichia-Shigella","Salmonella","Campylobacter","Enterobacteriaceae","Megamonas","Megasphaera","Akkermansia"],"built":"2026-10-21","analysis":"B","n":63,"projects":["PRJDB10703","PRJDB11210","PRJDB12333","PRJEB32628"],"rows":[[87.591177,0.0,4.607392,2.765485,0.0,0.0,0.0,0.0,0.0,0.39357,2.455876,0.715423,0.019241,0.041981,0.0,0.0,0.041981,0.0,0.0,0.0],[88.234698,0.0,8.318982,0.318091,0.0,0.0,0.0,0.0,0.0,0.237048,1.316936,0.222866,0.0,0.022287,0.0,0.0,0.022287,0.0,0.0,0.0],[1.553574,0.0,0.178329,0.193441,0.0,0.0,0.0,0.0,0.0,2.844189,70.104277,15.448088,0.0,0.126946,0.0,0.0,0.126946,0.0,0.0,0.0],[27.823344,0.0,57.350158,0.0,0.0,0.0,0.0,0.0,0.0,0.378549,8.264984,1.913775,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.075908,0.0,0.005235,0.0,0.096848,0.0,0.073291,0.376924,0.0,0.926605,4.065019,0.04188,80.580567,0.0,0.0,0.0,0.136111,0.0,0.0,0.007853],[0.70922,0.0,0.206856,0.0,0.531915,0.0,0.502364,1.41844,0.0,3.22104,30.910165,0.206856,45.00591,0.0,0.0,0.0,0.206856,0.0,0.0,0.059102],[0.088112,0.0,0.0,0.0,0.116308,0.0,0.119832,0.419413,0.0,1.092588,2.491806,0.052867,75.903147,0.0,0.0,0.0,0.461707,0.0,0.0,0.021147],[0.023889,0.0,0.047778,0.0,6.354515,0.334448,0.86001,0.812231,0.0,1.170569,6.975633,1.003344,72.001911,0.0,0.0,0.0,0.047778,0.0,0.0,0.0],[0.002501,0.0,0.0,0.0,0.0,0.0,0.0,0.010004,0.0,1.082879,37.360576,7.727705,33.789326,0.0,0.0,0.0,0.505177,0.0,0.0,0.0],[19.545256,0.0,48.936015,8.708643,0.0,0.0,0.0,0.0,0.0,1.450226,10.734587,1.472089,0.131176,5.443813,0.065588,0.0,5.509401,0.0,0.0,0.0],[85.963337,0.0,11.071202,0.479643,0.0,0.0,0.0,0.0,0.0,0.091986,0.420509,0.078845,0.0,0.0,0.545347,0.0,0.545347,0.0,0.0,0.0],[0.024079,0.028092,0.008026,0.0,0.072237,0.0,0.096316,0.192632,0.0,0.421382,1.011317,0.096316,91.35966,0.0,0.0,0.0,0.056184,0.0,0.0,0.016053],[0.0,0.0,0.074102,0.0,0.666914,0.0,0.185254,0.0,0.0,0.074102,15.635421,0.444609,18.747684,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.231523,0.0,0.089047,0.0,0.142476,0.0,0.231523,0.979519,0.071238,1.887801,8.299199,0.249332,66.856634,0.0,0.0,0.0,0.0,0.0,0.0,0.071238],[0.525855,0.0,0.175285,0.0,0.0,0.0,0.0,0.0,0.0,1.183173,8.720421,1.09553,39.614373,0.0,0.0,0.0,0.087642,0.0,0.0,0.0],[0.017218,0.0,0.103306,0.0,0.0,0.0,0.0,0.0,0.0,0.757576,7.248623,0.895317,78.219697,0.0,0.0,0.0,0.068871,0.0,0.0,0.0],[0.032413,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.305612,45.989998,15.289868,42.179107,0.0,0.0,0.0,4.903686,0.0,0.0,0.0],[0.062352,0.0,0.087293,0.0,0.0,0.0,0.024941,0.0,0.0,0.01247,1.94538,0.099763,89.263,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[61.213064,0.0,36.270607,0.690513,0.0,0.0,0.0,0.0,0.0,0.090202,0.846034,0.332815,0.0,0.183515,0.0,0.0,0.183515,0.0,0.0,0.0],[39.181052,0.0,52.446991,1.988979,0.0,0.0,0.0,0.0,0.0,0.178826,3.291851,0.846684,0.0,0.302909,0.0,0.0,0.302909,0.0,0.0,0.0],[20.76683,0.0,14.217563,2.461865,0.0,0.0,0.0,0.0,0.0,2.791684,33.211614,3.115613,0.0,2.002474,0.235585,0.0,2.238059,0.0,0.0,0.0],[41.874152,0.0,4.302454,0.227513,0.0,0.0,0.0,0.0,0.0,3.046325,39.762446,0.405892,0.024567,0.054475,0.0,0.0,0.054475,0.0,0.0,0.0],[28.127747,0.0,3.721067,9.771462,0.0,0.0,0.0,0.0,0.0,1.911808,51.010841,32.427483,0.0,0.212423,0.0,0.0,0.212423,0.0,0.0,0.0],[0.060328,0.0,0.0,0.0,0.004826,0.0,0.0,0.0,0.0,0.074807,5.125483,0.065154,77.263514,0.0,0.0,0.0,0.19305,0.0,0.0,0.0],[49.119824,0.0,41.883377,0.360072,0.0,0.0,0.0,0.0,0.0,0.090018,7.20144,3.360672,0.0,0.030006,0.0,0.0,0.030006,0.0,0.0,0.0],[47.104779,0.0,40.51011,1.539522,0.0,0.0,0.0,0.0,0.0,0.44807,6.893382,1.160386,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[5.854078,0.0,5.171373,3.387981,0.0,0.0,0.0,0.0,0.0,0.903307,70.587962,10.447241,0.0,0.069664,0.0,0.0,0.069664,0.0,0.0,0.0],[1.599172,0.0,2.73815,8.421537,0.0,0.0,0.0,0.0,0.0,3.508974,63.161528,4.302807,0.0,0.35665,0.0,0.0,0.35665,0.0,0.0,0.0],[1.201771,0.0,36.348303,8.159393,0.0,0.0,0.0,0.0,0.0,1.518027,38.414506,2.614379,0.0,0.210837,0.0,0.0,0.231921,0.0,0.0,0.0],[8.866548,0.0,74.199478,0.600742,0.0,0.0,0.0,0.0,0.0,0.915683,10.050099,1.843695,0.093025,0.087421,0.0,0.0,0.12777,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,1.921628,0.0,0.150716,0.150716,0.0,0.301432,19.593067,1.356443,51.507159,0.0,0.0,0.0,0.037679,0.0,0.0,0.0],[0.097579,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.060524,38.495553,0.06917,56.375988,0.0,0.0,0.0,0.049407,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0641,0.0,0.059521,0.352548,0.0,0.860766,1.021016,0.027471,94.350076,0.0,0.0,0.0,0.082414,0.0,0.0,0.013736],[0.069049,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.596779,7.383295,0.039456,68.027915,0.0,0.0,0.0,0.19235,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.080182,0.0,0.080182,0.396691,0.0,1.080351,0.772282,0.025321,85.676907,0.0,0.0,0.0,0.113943,0.0,0.0,0.0],[0.007119,0.0,0.028478,0.0,0.021358,0.0,0.014239,0.0,0.0,0.014239,3.153923,0.085434,87.320234,0.0,0.0,0.0,0.106792,0.0,0.0,0.0],[72.162542,0.0,21.315301,1.911887,0.0,0.0,0.0,0.0,0.0,0.159857,2.909393,0.741735,0.0,0.220602,0.0,0.0,0.220602,0.0,0.0,0.0],[77.633679,0.0,5.347167,0.229449,0.0,0.0,0.0,0.0,0.0,0.7083,14.964086,2.234637,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[85.61651,0.0,12.804043,0.0,0.0,0.0,0.0,0.0,0.0,0.126356,0.821312,0.084237,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.080283,0.0,0.0,0.0,0.045876,0.0,0.039322,0.226103,0.0,0.53249,0.380116,0.014746,97.073762,0.0,0.0,0.0,0.098306,0.0,0.0,0.004915],[0.289101,0.0,0.0,0.0,0.006672,0.0,0.0,0.0,0.0,0.112305,59.717126,0.664932,33.729179,0.0,0.0,0.0,0.036694,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,10.656142,0.0,5.525407,0.49334,0.0,0.49334,45.091268,0.49334,13.073508,0.0,0.0,0.0,0.0,0.0,0.0,0.394672],[0.019378,0.0,0.0,0.0,0.085818,0.0,0.08305,0.293442,0.0,0.750215,11.505135,0.011073,78.908175,0.0,0.0,0.0,0.055366,0.0,0.0,0.011073],[0.010622,0.0,0.0,0.0,0.403654,0.0,0.393032,1.635861,0.0,3.101763,9.082218,0.180582,73.252603,0.0,0.0,0.0,0.956023,0.0,0.0,0.021245],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.132188,0.0,0.693985,31.989425,4.527429,30.601454,0.0,0.0,0.0,0.033047,0.0,0.0,0.0],[92.529728,0.0,0.076717,0.0,0.0,0.0,0.143843,0.086306,0.0,0.153433,0.22056,0.076717,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[91.406861,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.055872,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[91.341077,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.023466,0.046932,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[75.847829,0.0,0.0,0.0,0.0,0.0,0.025028,0.212739,0.0,1.151295,7.408334,0.362908,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[29.229731,0.0,1.513545,0.038562,0.0,0.0,1.446062,1.561747,0.510942,6.362672,28.554902,2.853562,0.0,0.0,0.0,0.0,0.144606,0.0,0.0,0.0],[59.8588,0.0,0.0,0.0,0.0,0.0,0.235334,1.462431,0.0,3.311481,17.666835,0.437048,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[96.157266,0.0,0.0,0.108663,0.0,0.0,0.0,0.0,0.0,0.049392,0.167934,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[6.595315,0.0,4.908663,0.011207,2.331055,0.0,0.739662,2.269416,0.033621,4.331503,60.65785,3.390115,0.325003,8.069035,0.0,0.0,8.069035,0.0,0.0,0.0],[13.418971,0.0,3.843091,0.0,7.861351,0.0,1.523435,0.260099,1.735761,2.781464,12.033547,0.265407,2.595679,27.124582,0.0,0.021233,27.124582,0.0,0.0,0.244174],[14.823634,0.0,4.291489,0.066449,4.994739,0.0,2.403234,4.97259,0.033224,11.434742,19.663326,1.821806,0.027687,13.367296,0.0,0.02215,13.367296,0.0,0.0,0.016612],[13.661957,0.0,10.19335,0.0,20.392011,0.0,0.38245,1.157973,8.828216,4.206948,12.397748,0.350579,1.630723,7.112504,0.0,0.021247,8.079252,0.0,0.0,0.0],[15.764357,0.0,2.237946,0.0,0.515605,0.0,1.596182,6.428611,12.763973,11.47496,18.951237,1.513905,0.038396,9.878778,0.0,0.0,9.878778,0.0,0.0,7.975426],[6.607905,0.0,5.255666,0.043797,2.813971,0.0,2.233658,2.11869,0.0,8.786817,26.031972,6.284901,0.076645,32.727472,0.0,0.065696,32.727472,0.0,0.0,4.905289],[18.037416,0.0,4.035769,0.0,12.625015,0.0,0.505942,0.064713,0.776562,1.323685,9.589363,0.54124,0.452994,4.847629,0.0,0.0,5.335922,0.0,0.0,0.123544],[25.475285,0.0,0.201297,0.0,0.0,0.0,0.0,0.0,0.0,0.268396,4.11541,0.089465,55.177813,8.946544,0.134198,0.0,9.080743,0.0,0.0,0.0],[28.674755,0.0,1.749883,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,36.070929,32.057863,0.0,0.0,32.057863,0.0,0.0,0.0],[1.007974,0.0,0.631864,0.0,0.0,0.0,0.0,0.195577,0.0,0.496465,2.136302,0.0,83.616669,10.215135,0.0,0.0,10.215135,0.0,0.0,0.0],[34.00209,0.0,0.083595,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,59.373041,2.298851,1.253918,0.0,3.594566,0.0,0.0,0.0]],"quant":[[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,1,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,1,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,1,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,0,0,0,1,1,1,1,1,1,0,0,0,0,1,0,0,0],[1,0,0,0,0,0,1,1,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[1,0,1,0,1,0,1,1,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1],[1,0,1,1,1,0,1,1,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,0,1,0,0,1],[1,0,1,0,1,0,1,1,0,1,1,1,1,1,0,1,1,0,0,1],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1],[1,0,0,0,0,0,0,0,0,1,1,0,1,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,1,0,1,1,0,1,1,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,0,0]],"qvals":{"Lactobacillus":[0.060328,0.069049,0.075908,0.080283,0.088112,0.097579,0.231523,0.289101,0.525855,0.70922,1.007974,1.201771,1.553574,1.599172,5.854078,6.595315,6.607905,8.866548,13.418971,13.661957,14.823634,15.764357,18.037416,19.545256,20.76683,25.475285,27.823344,28.127747,28.674755,29.229731,34.00209,39.181052,41.874152,47.104779,49.119824,59.8588,61.213064,72.162542,75.847829,77.633679,85.61651,85.963337,87.591177,88.234698,91.341077,91.406861,92.529728,96.157266],"Bifidobacterium":[],"Enterococcus":[0.178329,0.631864,1.513545,1.749883,2.237946,2.73815,3.721067,3.843091,4.035769,4.291489,4.302454,4.607392,4.908663,5.171373,5.255666,5.347167,8.318982,10.19335,11.071202,12.804043,14.217563,21.315301,36.270607,36.348303,40.51011,41.883377,48.936015,52.446991,57.350158,74.199478],"Streptococcus":[0.066449,0.108663,0.193441,0.227513,0.229449,0.318091,0.360072,0.479643,0.600742,0.690513,1.539522,1.911887,1.988979,2.461865,2.765485,3.387981,8.159393,8.421537,8.708643,9.771462],"Bacteroides":[0.045876,0.0641,0.072237,0.080182,0.085818,0.096848,0.116308,0.403654,0.515605,0.531915,0.666914,1.921628,2.331055,2.813971,4.994739,6.354515,7.861351,10.656142,12.625015,20.392011],"Prevotella":[0.334448],"Alistipes":[0.039322,0.059521,0.073291,0.080182,0.08305,0.096316,0.119832,0.143843,0.231523,0.235334,0.38245,0.393032,0.502364,0.505942,0.739662,0.86001,1.446062,1.523435,1.596182,2.233658,2.403234,5.525407],"Faecalibacterium":[0.064713,0.192632,0.195577,0.212739,0.226103,0.260099,0.293442,0.352548,0.376924,0.396691,0.419413,0.49334,0.812231,0.979519,1.157973,1.41844,1.462431,1.561747,1.635861,2.11869,2.269416,4.97259,6.428611],"Butyricicoccus":[0.510942,0.776562,1.735761,8.828216,12.763973],"Ruminococcaceae":[0.060524,0.074807,0.090018,0.090202,0.091986,0.112305,0.126356,0.153433,0.159857,0.178826,0.237048,0.268396,0.305612,0.378549,0.39357,0.421382,0.44807,0.49334,0.496465,0.53249,0.596779,0.693985,0.7083,0.750215,0.757576,0.860766,0.903307,0.915683,0.926605,1.080351,1.082879,1.092588,1.151295,1.170569,1.183173,1.323685,1.450226,1.518027,1.887801,1.911808,2.781464,2.791684,2.844189,3.046325,3.101763,3.22104,3.311481,3.508974,4.206948,4.331503,6.362672,8.786817,11.434742,11.47496],"Lachnospiraceae":[0.167934,0.22056,0.380116,0.420509,0.772282,0.821312,0.846034,1.011317,1.021016,1.316936,1.94538,2.136302,2.455876,2.491806,2.909393,3.153923,3.291851,4.065019,4.11541,5.125483,6.893382,6.975633,7.20144,7.248623,7.383295,7.408334,8.264984,8.299199,8.720421,9.082218,9.589363,10.050099,10.734587,11.505135,12.033547,12.397748,14.964086,15.635421,17.666835,18.951237,19.593067,19.663326,26.031972,28.554902,30.910165,31.989425,33.211614,37.360576,38.414506,38.495553,39.762446,45.091268,45.989998,51.010841,59.717126,60.65785,63.161528,70.104277,70.587962],"Blautia":[0.039456,0.04188,0.052867,0.065154,0.06917,0.078845,0.085434,0.096316,0.180582,0.222866,0.249332,0.265407,0.332815,0.350579,0.362908,0.405892,0.437048,0.444609,0.49334,0.54124,0.664932,0.715423,0.741735,0.846684,0.895317,1.003344,1.09553,1.160386,1.356443,1.472089,1.513905,1.821806,1.843695,1.913775,2.234637,2.614379,2.853562,3.115613,3.360672,3.390115,4.302807,4.527429,6.284901,7.727705,10.447241,15.289868,15.448088,32.427483],"Clostridium":[0.019241,0.024567,0.076645,0.093025,0.131176,0.325003,0.452994,1.630723,2.595679,13.073508,18.747684,30.601454,33.729179,33.789326,36.070929,39.614373,42.179107,45.00591,51.507159,55.177813,56.375988,59.373041,66.856634,68.027915,72.001911,73.252603,75.903147,77.263514,78.219697,78.908175,80.580567,83.616669,85.676907,87.320234,89.263,91.35966,94.350076,97.073762],"Escherichia-Shigella":[0.022287,0.041981,0.054475,0.069664,0.087421,0.126946,0.183515,0.210837,0.212423,0.220602,0.302909,0.35665,2.002474,2.298851,4.847629,5.443813,7.112504,8.069035,8.946544,9.878778,10.215135,13.367296,27.124582,32.057863,32.727472],"Salmonella":[0.235585,0.545347,1.253918],"Campylobacter":[0.065696],"Enterobacteriaceae":[0.022287,0.036694,0.041981,0.049407,0.054475,0.055366,0.056184,0.069664,0.082414,0.098306,0.106792,0.113943,0.126946,0.12777,0.136111,0.144606,0.183515,0.19235,0.19305,0.212423,0.220602,0.231921,0.302909,0.35665,0.461707,0.505177,0.545347,0.956023,2.238059,3.594566,4.903686,5.335922,5.509401,8.069035,8.079252,9.080743,9.878778,10.215135,13.367296,27.124582,32.057863,32.727472],"Megamonas":[],"Megasphaera":[],"Akkermansia":[0.123544,0.244174,4.905289,7.975426]},"stats":[{"Target":"Lactobacillus","N_eligible":63,"N_detected":57,"Detection_rate_pct":90.5,"N_quantified":48,"N_below_LOQ":9,"N_not_detected":6,"Mean_pct":32.660438375885,"P5_pct":0.0774394755151517,"P10_pct":0.0947389171899633,"P25_pct":1.4656233531842588,"P50_pct":20.156042703333757,"P75_pct":60.19736578961609,"P90_pct":87.78423339128334,"P95_pct":91.38383669610604,"Reliability":"OK"},{"Target":"Bifidobacterium","N_eligible":63,"N_detected":1,"Detection_rate_pct":1.6,"N_quantified":0,"N_below_LOQ":1,"N_not_detected":62,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Enterococcus","N_eligible":63,"N_detected":43,"Detection_rate_pct":68.3,"N_quantified":30,"N_below_LOQ":13,"N_not_detected":20,"Mean_pct":17.346644217864558,"P5_pct":1.028620350210505,"P10_pct":1.7262494849711905,"P25_pct":3.891260822902693,"P50_pct":5.301416532436464,"P75_pct":32.53178027137762,"P90_pct":49.28711274089924,"P95_pct":55.14373269436733,"Reliability":"OK"},{"Target":"Streptococcus","N_eligible":63,"N_detected":23,"Detection_rate_pct":36.5,"N_quantified":20,"N_below_LOQ":3,"N_not_detected":40,"Mean_pct":2.6195664406166577,"P5_pct":0.1065527108103632,"P10_pct":0.1849633667891881,"P25_pct":0.2959303146848358,"P50_pct":1.1150176390540665,"P75_pct":2.921108763010753,"P90_pct":8.450247646498049,"P95_pct":8.76178400504292,"Reliability":"OK"},{"Target":"Bacteroides","N_eligible":63,"N_detected":24,"Detection_rate_pct":38.1,"N_quantified":20,"N_below_LOQ":4,"N_not_detected":39,"Mean_pct":3.631494225618204,"P5_pct":0.0631884511347796,"P10_pct":0.0714232063522642,"P25_pct":0.0940908481428781,"P50_pct":0.5994142826736459,"P75_pct":5.3346833613568005,"P90_pct":10.85302934446625,"P95_pct":13.013364524659528,"Reliability":"OK"},{"Target":"Prevotella","N_eligible":63,"N_detected":1,"Detection_rate_pct":1.6,"N_quantified":1,"N_below_LOQ":0,"N_not_detected":62,"Mean_pct":0.334448160535117,"P5_pct":0.334448160535117,"P10_pct":0.334448160535117,"P25_pct":0.334448160535117,"P50_pct":0.334448160535117,"P75_pct":0.334448160535117,"P90_pct":0.334448160535117,"P95_pct":0.334448160535117,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Alistipes","N_eligible":63,"N_detected":27,"Detection_rate_pct":42.9,"N_quantified":22,"N_below_LOQ":5,"N_not_detected":36,"Mean_pct":0.8760750573598053,"P5_pct":0.0602095677342081,"P10_pct":0.0739799103303485,"P25_pct":0.1021949958716597,"P50_pct":0.3877407292226186,"P75_pct":1.299548807502148,"P90_pct":2.1699105791166016,"P95_pct":2.3947550605247234,"Reliability":"OK"},{"Target":"Faecalibacterium","N_eligible":63,"N_detected":27,"Detection_rate_pct":42.9,"N_quantified":23,"N_below_LOQ":4,"N_not_detected":36,"Mean_pct":1.230510035688116,"P5_pct":0.1929263443701177,"P10_pct":0.1990094279563832,"P25_pct":0.2767702914035754,"P50_pct":0.493339911198816,"P75_pct":1.51208875169005,"P90_pct":2.239270985156054,"P95_pct":4.702272471524636,"Reliability":"OK"},{"Target":"Butyricicoccus","N_eligible":63,"N_detected":8,"Detection_rate_pct":12.7,"N_quantified":5,"N_below_LOQ":3,"N_not_detected":55,"Mean_pct":4.923090897338611,"P5_pct":0.5640658843424761,"P10_pct":0.6171899003729884,"P25_pct":0.7765619484645252,"P50_pct":1.7357609214926482,"P75_pct":8.828216296611071,"P90_pct":11.189670589732136,"P95_pct":11.976822020772492,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Ruminococcaceae","N_eligible":63,"N_detected":60,"Detection_rate_pct":95.2,"N_quantified":54,"N_below_LOQ":6,"N_not_detected":3,"Mean_pct":1.8200632221451225,"P5_pct":0.0901377165013095,"P10_pct":0.1165199126206761,"P25_pct":0.3823041573622023,"P50_pct":0.9094949410801648,"P75_pct":2.564049936648399,"P90_pct":3.9975556173622686,"P95_pct":7.211122972535344,"Reliability":"OK"},{"Target":"Lachnospiraceae","N_eligible":63,"N_detected":61,"Detection_rate_pct":96.8,"N_quantified":59,"N_below_LOQ":2,"N_not_detected":2,"Mean_pct":17.965804234482544,"P5_pct":0.4164692973693973,"P10_pct":0.8410897703473847,"P25_pct":3.031658004355479,"P50_pct":9.082217973231357,"P75_pct":29.732533817222787,"P90_pct":46.99416669873051,"P95_pct":60.90821823300941,"Reliability":"OK"},{"Target":"Blautia","N_eligible":63,"N_detected":57,"Detection_rate_pct":90.5,"N_quantified":48,"N_below_LOQ":9,"N_not_detected":6,"Mean_pct":2.83094393756925,"P5_pct":0.0571677096421131,"P10_pct":0.075942735661949,"P25_pct":0.3159629146941047,"P50_pct":0.8710006159916748,"P75_pct":2.6741748468403075,"P90_pct":6.717742045147758,"P95_pct":13.594948981545723,"Reliability":"OK"},{"Target":"Clostridium","N_eligible":63,"N_detected":40,"Detection_rate_pct":63.5,"N_quantified":38,"N_below_LOQ":2,"N_not_detected":23,"Mean_pct":47.90181572369883,"P5_pct":0.0688334337361688,"P10_pct":0.119730951665837,"P25_pct":14.492051816958645,"P50_pct":53.34248578758498,"P75_pct":77.9806511056511,"P90_pct":87.90306357514105,"P95_pct":91.80822206309703,"Reliability":"OK"},{"Target":"Escherichia-Shigella","N_eligible":63,"N_detected":26,"Detection_rate_pct":41.3,"N_quantified":25,"N_below_LOQ":1,"N_not_detected":37,"Mean_pct":6.639267353536001,"P5_pct":0.0444796265377894,"P10_pct":0.0605504770328415,"P25_pct":0.1835147744945567,"P50_pct":2.0024736439130693,"P75_pct":8.946544397226571,"P90_pct":21.62166762453089,"P95_pct":31.071206644153182,"Reliability":"OK"},{"Target":"Salmonella","N_eligible":63,"N_detected":5,"Detection_rate_pct":7.9,"N_quantified":3,"N_below_LOQ":2,"N_not_detected":58,"Mean_pct":0.6782835529796957,"P5_pct":0.2665613240265346,"P10_pct":0.2975375134750612,"P25_pct":0.3904660818206407,"P50_pct":0.5453470290632734,"P75_pct":0.8996327621805394,"P90_pct":1.112204202050899,"P95_pct":1.1830613486743522,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Campylobacter","N_eligible":63,"N_detected":4,"Detection_rate_pct":6.3,"N_quantified":1,"N_below_LOQ":3,"N_not_detected":59,"Mean_pct":0.065695828314902,"P5_pct":0.065695828314902,"P10_pct":0.065695828314902,"P25_pct":0.065695828314902,"P50_pct":0.065695828314902,"P75_pct":0.065695828314902,"P90_pct":0.065695828314902,"P95_pct":0.065695828314902,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Enterobacteriaceae","N_eligible":63,"N_detected":49,"Detection_rate_pct":77.8,"N_quantified":42,"N_below_LOQ":7,"N_not_detected":14,"Mean_pct":4.234914465908278,"P5_pct":0.0423521098287256,"P10_pct":0.0545641004940606,"P25_pct":0.1085797973245619,"P50_pct":0.2262615327912237,"P75_pct":5.227862871809483,"P90_pct":10.181498973064832,"P95_pct":26.436717689225333,"Reliability":"OK"},{"Target":"Megamonas","N_eligible":63,"N_detected":0,"Detection_rate_pct":0.0,"N_quantified":0,"N_below_LOQ":0,"N_not_detected":63,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Megasphaera","N_eligible":63,"N_detected":0,"Detection_rate_pct":0.0,"N_quantified":0,"N_below_LOQ":0,"N_not_detected":63,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Akkermansia","N_eligible":63,"N_detected":15,"Detection_rate_pct":23.8,"N_quantified":4,"N_below_LOQ":11,"N_not_detected":48,"Mean_pct":3.312108312788059,"P5_pct":0.1416385022793419,"P10_pct":0.1597330582120548,"P25_pct":0.2140167260101935,"P50_pct":2.5747314167053656,"P75_pct":5.672823003483231,"P90_pct":7.054385084230219,"P95_pct":7.514905777812546,"Reliability":"Insufficient (<10 quantified)"}]};window.GG_EXAMPLE="Sample_ID,Farm_ID,Collection_Date,Age_Days,Broiler_Layer,Breed,Country_Region,Sample_Site,Composite_Sample_N,Sampling_Points,Housing,Flock_Health,Feed_Diet,Probiotic,Antibiotic,Vaccination,FCR,Mortality_pct,Uniformity_pct,Litter,Diarrhea,Negative_Control_Ct,Extraction_Control_Ct,Total_Bacteria_Ct_1,Total_Bacteria_Ct_2,Total_Bacteria_Efficiency_pct,Lactobacillus_Ct_1,Lactobacillus_Ct_2,Lactobacillus_Efficiency_pct,Bifidobacterium_Ct_1,Bifidobacterium_Ct_2,Bifidobacterium_Efficiency_pct,Enterococcus_Ct_1,Enterococcus_Ct_2,Enterococcus_Efficiency_pct,Streptococcus_Ct_1,Streptococcus_Ct_2,Streptococcus_Efficiency_pct,Bacteroides_Ct_1,Bacteroides_Ct_2,Bacteroides_Efficiency_pct,Prevotella_Ct_1,Prevotella_Ct_2,Prevotella_Efficiency_pct,Alistipes_Ct_1,Alistipes_Ct_2,Alistipes_Efficiency_pct,Faecalibacterium_Ct_1,Faecalibacterium_Ct_2,Faecalibacterium_Efficiency_pct,Butyricicoccus_Ct_1,Butyricicoccus_Ct_2,Butyricicoccus_Efficiency_pct,Ruminococcaceae_Ct_1,Ruminococcaceae_Ct_2,Ruminococcaceae_Efficiency_pct,Lachnospiraceae_Ct_1,Lachnospiraceae_Ct_2,Lachnospiraceae_Efficiency_pct,Blautia_Ct_1,Blautia_Ct_2,Blautia_Efficiency_pct,Clostridium_Ct_1,Clostridium_Ct_2,Clostridium_Efficiency_pct,Escherichia-Shigella_Ct_1,Escherichia-Shigella_Ct_2,Escherichia-Shigella_Efficiency_pct,Salmonella_Ct_1,Salmonella_Ct_2,Salmonella_Efficiency_pct,Campylobacter_Ct_1,Campylobacter_Ct_2,Campylobacter_Efficiency_pct,Enterobacteriaceae_Ct_1,Enterobacteriaceae_Ct_2,Enterobacteriaceae_Efficiency_pct,Megamonas_Ct_1,Megamonas_Ct_2,Megamonas_Efficiency_pct,Megasphaera_Ct_1,Megasphaera_Ct_2,Megasphaera_Efficiency_pct,Akkermansia_Ct_1,Akkermansia_Ct_2,Akkermansia_Efficiency_pct\nGG-EX-01,FARM-A,2026-10-12,14,Broiler,Ross 308,Iran - Alborz,Fresh fecal composite,10,5,Commercial house,Healthy,Corn-soy starter,No,None since placement,Routine,1.31,0.9,86,Acceptable,Not observed,ND,ND,14.10,14.10,98,16.62,16.57,97,ND,ND,97,22.89,22.94,97,ND,ND,97,18.72,18.83,97,ND,ND,97,19.74,19.56,97,22.68,22.79,97,22.60,22.58,97,19.09,19.18,97,16.00,15.80,97,<LOQ,<LOQ,97,20.69,20.55,97,16.48,16.43,97,ND,ND,97,ND,ND,97,16.59,16.48,97,ND,ND,97,ND,ND,97,18.23,18.22,97\nGG-EX-02,FARM-B,2026-10-12,11,Broiler,Ross 308,Iran - Qazvin,Fresh fecal composite,10,5,Commercial house,Healthy,Corn-soy grower,\"Bacillus-based, in feed\",None since placement,Routine,1.42,1.8,81,Slightly wet,Not observed,ND,ND,13.90,13.88,98,17.78,17.98,97,ND,ND,97,20.73,21.64,97,15.05,15.15,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,22.22,22.23,97,18.85,18.66,97,21.25,21.34,97,23.51,23.56,97,15.03,15.02,97,21.98,22.11,97,ND,ND,97,15.14,14.85,97,ND,ND,97,ND,ND,97,ND,ND,97\nGG-EX-03,FARM-C,2026-10-13,21,Broiler,Cobb 500,Iran - Mazandaran,Fresh fecal composite,10,5,Commercial house,Some birds dull,Corn-soy grower,No,\"Enrofloxacin, day 10-14\",Routine,1.63,3.9,72,Wet,Mild,33.5,ND,14.40,14.50,98,23.30,23.22,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,16.39,16.27,97,14.85,14.98,97,ND,ND,97,ND,ND,97,15.03,14.95,97,ND,ND,97,ND,ND,97,ND,ND,97\n";window.GG_BUILD={"short": "Reference built by reprocessing raw FASTQ reads with DADA2 and SILVA 138.2"};</script>
-<script>/* GreenGut scoring engine v2 (2026-10-21). Implements the GreenGut reference specification:
-   - reference percentiles from QUANTIFIED values only; ND / <LOD / <LOQ never treated as zero
-   - percentile rank = 100 * #(reference values < x) / N_quantified
-   - per-bacterium direction rules (her draft for 4 targets; provisional group defaults for the rest)
-   - lab QC (replicates, controls, efficiency), five-part balance score (35/20/20/15/10) */
+<script>window.GG_REF={"taxa":["Lactobacillus","Bifidobacterium","Enterococcus","Streptococcus","Bacteroides","Prevotella","Alistipes","Faecalibacterium","Butyricicoccus","Ruminococcaceae","Lachnospiraceae","Blautia","Clostridium","Escherichia-Shigella","Salmonella","Campylobacter","Enterobacteriaceae","Megamonas","Megasphaera","Akkermansia"],"built":"2026-10-21","analysis":"B","n":63,"projects":["PRJDB10703","PRJDB11210","PRJDB12333","PRJEB32628"],"rows":[[87.591177,0.0,4.607392,2.765485,0.0,0.0,0.0,0.0,0.0,0.39357,2.455876,0.715423,0.019241,0.041981,0.0,0.0,0.041981,0.0,0.0,0.0],[88.234698,0.0,8.318982,0.318091,0.0,0.0,0.0,0.0,0.0,0.237048,1.316936,0.222866,0.0,0.022287,0.0,0.0,0.022287,0.0,0.0,0.0],[1.553574,0.0,0.178329,0.193441,0.0,0.0,0.0,0.0,0.0,2.844189,70.104277,15.448088,0.0,0.126946,0.0,0.0,0.126946,0.0,0.0,0.0],[27.823344,0.0,57.350158,0.0,0.0,0.0,0.0,0.0,0.0,0.378549,8.264984,1.913775,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.075908,0.0,0.005235,0.0,0.096848,0.0,0.073291,0.376924,0.0,0.926605,4.065019,0.04188,80.580567,0.0,0.0,0.0,0.136111,0.0,0.0,0.007853],[0.70922,0.0,0.206856,0.0,0.531915,0.0,0.502364,1.41844,0.0,3.22104,30.910165,0.206856,45.00591,0.0,0.0,0.0,0.206856,0.0,0.0,0.059102],[0.088112,0.0,0.0,0.0,0.116308,0.0,0.119832,0.419413,0.0,1.092588,2.491806,0.052867,75.903147,0.0,0.0,0.0,0.461707,0.0,0.0,0.021147],[0.023889,0.0,0.047778,0.0,6.354515,0.334448,0.86001,0.812231,0.0,1.170569,6.975633,1.003344,72.001911,0.0,0.0,0.0,0.047778,0.0,0.0,0.0],[0.002501,0.0,0.0,0.0,0.0,0.0,0.0,0.010004,0.0,1.082879,37.360576,7.727705,33.789326,0.0,0.0,0.0,0.505177,0.0,0.0,0.0],[19.545256,0.0,48.936015,8.708643,0.0,0.0,0.0,0.0,0.0,1.450226,10.734587,1.472089,0.131176,5.443813,0.065588,0.0,5.509401,0.0,0.0,0.0],[85.963337,0.0,11.071202,0.479643,0.0,0.0,0.0,0.0,0.0,0.091986,0.420509,0.078845,0.0,0.0,0.545347,0.0,0.545347,0.0,0.0,0.0],[0.024079,0.028092,0.008026,0.0,0.072237,0.0,0.096316,0.192632,0.0,0.421382,1.011317,0.096316,91.35966,0.0,0.0,0.0,0.056184,0.0,0.0,0.016053],[0.0,0.0,0.074102,0.0,0.666914,0.0,0.185254,0.0,0.0,0.074102,15.635421,0.444609,18.747684,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.231523,0.0,0.089047,0.0,0.142476,0.0,0.231523,0.979519,0.071238,1.887801,8.299199,0.249332,66.856634,0.0,0.0,0.0,0.0,0.0,0.0,0.071238],[0.525855,0.0,0.175285,0.0,0.0,0.0,0.0,0.0,0.0,1.183173,8.720421,1.09553,39.614373,0.0,0.0,0.0,0.087642,0.0,0.0,0.0],[0.017218,0.0,0.103306,0.0,0.0,0.0,0.0,0.0,0.0,0.757576,7.248623,0.895317,78.219697,0.0,0.0,0.0,0.068871,0.0,0.0,0.0],[0.032413,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.305612,45.989998,15.289868,42.179107,0.0,0.0,0.0,4.903686,0.0,0.0,0.0],[0.062352,0.0,0.087293,0.0,0.0,0.0,0.024941,0.0,0.0,0.01247,1.94538,0.099763,89.263,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[61.213064,0.0,36.270607,0.690513,0.0,0.0,0.0,0.0,0.0,0.090202,0.846034,0.332815,0.0,0.183515,0.0,0.0,0.183515,0.0,0.0,0.0],[39.181052,0.0,52.446991,1.988979,0.0,0.0,0.0,0.0,0.0,0.178826,3.291851,0.846684,0.0,0.302909,0.0,0.0,0.302909,0.0,0.0,0.0],[20.76683,0.0,14.217563,2.461865,0.0,0.0,0.0,0.0,0.0,2.791684,33.211614,3.115613,0.0,2.002474,0.235585,0.0,2.238059,0.0,0.0,0.0],[41.874152,0.0,4.302454,0.227513,0.0,0.0,0.0,0.0,0.0,3.046325,39.762446,0.405892,0.024567,0.054475,0.0,0.0,0.054475,0.0,0.0,0.0],[28.127747,0.0,3.721067,9.771462,0.0,0.0,0.0,0.0,0.0,1.911808,51.010841,32.427483,0.0,0.212423,0.0,0.0,0.212423,0.0,0.0,0.0],[0.060328,0.0,0.0,0.0,0.004826,0.0,0.0,0.0,0.0,0.074807,5.125483,0.065154,77.263514,0.0,0.0,0.0,0.19305,0.0,0.0,0.0],[49.119824,0.0,41.883377,0.360072,0.0,0.0,0.0,0.0,0.0,0.090018,7.20144,3.360672,0.0,0.030006,0.0,0.0,0.030006,0.0,0.0,0.0],[47.104779,0.0,40.51011,1.539522,0.0,0.0,0.0,0.0,0.0,0.44807,6.893382,1.160386,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[5.854078,0.0,5.171373,3.387981,0.0,0.0,0.0,0.0,0.0,0.903307,70.587962,10.447241,0.0,0.069664,0.0,0.0,0.069664,0.0,0.0,0.0],[1.599172,0.0,2.73815,8.421537,0.0,0.0,0.0,0.0,0.0,3.508974,63.161528,4.302807,0.0,0.35665,0.0,0.0,0.35665,0.0,0.0,0.0],[1.201771,0.0,36.348303,8.159393,0.0,0.0,0.0,0.0,0.0,1.518027,38.414506,2.614379,0.0,0.210837,0.0,0.0,0.231921,0.0,0.0,0.0],[8.866548,0.0,74.199478,0.600742,0.0,0.0,0.0,0.0,0.0,0.915683,10.050099,1.843695,0.093025,0.087421,0.0,0.0,0.12777,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,1.921628,0.0,0.150716,0.150716,0.0,0.301432,19.593067,1.356443,51.507159,0.0,0.0,0.0,0.037679,0.0,0.0,0.0],[0.097579,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.060524,38.495553,0.06917,56.375988,0.0,0.0,0.0,0.049407,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0641,0.0,0.059521,0.352548,0.0,0.860766,1.021016,0.027471,94.350076,0.0,0.0,0.0,0.082414,0.0,0.0,0.013736],[0.069049,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.596779,7.383295,0.039456,68.027915,0.0,0.0,0.0,0.19235,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.080182,0.0,0.080182,0.396691,0.0,1.080351,0.772282,0.025321,85.676907,0.0,0.0,0.0,0.113943,0.0,0.0,0.0],[0.007119,0.0,0.028478,0.0,0.021358,0.0,0.014239,0.0,0.0,0.014239,3.153923,0.085434,87.320234,0.0,0.0,0.0,0.106792,0.0,0.0,0.0],[72.162542,0.0,21.315301,1.911887,0.0,0.0,0.0,0.0,0.0,0.159857,2.909393,0.741735,0.0,0.220602,0.0,0.0,0.220602,0.0,0.0,0.0],[77.633679,0.0,5.347167,0.229449,0.0,0.0,0.0,0.0,0.0,0.7083,14.964086,2.234637,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[85.61651,0.0,12.804043,0.0,0.0,0.0,0.0,0.0,0.0,0.126356,0.821312,0.084237,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[0.080283,0.0,0.0,0.0,0.045876,0.0,0.039322,0.226103,0.0,0.53249,0.380116,0.014746,97.073762,0.0,0.0,0.0,0.098306,0.0,0.0,0.004915],[0.289101,0.0,0.0,0.0,0.006672,0.0,0.0,0.0,0.0,0.112305,59.717126,0.664932,33.729179,0.0,0.0,0.0,0.036694,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,10.656142,0.0,5.525407,0.49334,0.0,0.49334,45.091268,0.49334,13.073508,0.0,0.0,0.0,0.0,0.0,0.0,0.394672],[0.019378,0.0,0.0,0.0,0.085818,0.0,0.08305,0.293442,0.0,0.750215,11.505135,0.011073,78.908175,0.0,0.0,0.0,0.055366,0.0,0.0,0.011073],[0.010622,0.0,0.0,0.0,0.403654,0.0,0.393032,1.635861,0.0,3.101763,9.082218,0.180582,73.252603,0.0,0.0,0.0,0.956023,0.0,0.0,0.021245],[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.132188,0.0,0.693985,31.989425,4.527429,30.601454,0.0,0.0,0.0,0.033047,0.0,0.0,0.0],[92.529728,0.0,0.076717,0.0,0.0,0.0,0.143843,0.086306,0.0,0.153433,0.22056,0.076717,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[91.406861,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.055872,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[91.341077,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.023466,0.046932,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[75.847829,0.0,0.0,0.0,0.0,0.0,0.025028,0.212739,0.0,1.151295,7.408334,0.362908,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[29.229731,0.0,1.513545,0.038562,0.0,0.0,1.446062,1.561747,0.510942,6.362672,28.554902,2.853562,0.0,0.0,0.0,0.0,0.144606,0.0,0.0,0.0],[59.8588,0.0,0.0,0.0,0.0,0.0,0.235334,1.462431,0.0,3.311481,17.666835,0.437048,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[96.157266,0.0,0.0,0.108663,0.0,0.0,0.0,0.0,0.0,0.049392,0.167934,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],[6.595315,0.0,4.908663,0.011207,2.331055,0.0,0.739662,2.269416,0.033621,4.331503,60.65785,3.390115,0.325003,8.069035,0.0,0.0,8.069035,0.0,0.0,0.0],[13.418971,0.0,3.843091,0.0,7.861351,0.0,1.523435,0.260099,1.735761,2.781464,12.033547,0.265407,2.595679,27.124582,0.0,0.021233,27.124582,0.0,0.0,0.244174],[14.823634,0.0,4.291489,0.066449,4.994739,0.0,2.403234,4.97259,0.033224,11.434742,19.663326,1.821806,0.027687,13.367296,0.0,0.02215,13.367296,0.0,0.0,0.016612],[13.661957,0.0,10.19335,0.0,20.392011,0.0,0.38245,1.157973,8.828216,4.206948,12.397748,0.350579,1.630723,7.112504,0.0,0.021247,8.079252,0.0,0.0,0.0],[15.764357,0.0,2.237946,0.0,0.515605,0.0,1.596182,6.428611,12.763973,11.47496,18.951237,1.513905,0.038396,9.878778,0.0,0.0,9.878778,0.0,0.0,7.975426],[6.607905,0.0,5.255666,0.043797,2.813971,0.0,2.233658,2.11869,0.0,8.786817,26.031972,6.284901,0.076645,32.727472,0.0,0.065696,32.727472,0.0,0.0,4.905289],[18.037416,0.0,4.035769,0.0,12.625015,0.0,0.505942,0.064713,0.776562,1.323685,9.589363,0.54124,0.452994,4.847629,0.0,0.0,5.335922,0.0,0.0,0.123544],[25.475285,0.0,0.201297,0.0,0.0,0.0,0.0,0.0,0.0,0.268396,4.11541,0.089465,55.177813,8.946544,0.134198,0.0,9.080743,0.0,0.0,0.0],[28.674755,0.0,1.749883,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,36.070929,32.057863,0.0,0.0,32.057863,0.0,0.0,0.0],[1.007974,0.0,0.631864,0.0,0.0,0.0,0.0,0.195577,0.0,0.496465,2.136302,0.0,83.616669,10.215135,0.0,0.0,10.215135,0.0,0.0,0.0],[34.00209,0.0,0.083595,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,59.373041,2.298851,1.253918,0.0,3.594566,0.0,0.0,0.0]],"quant":[[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,1,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,1,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,1,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0],[1,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,0,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,1,1,0,1,1,1,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0],[1,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,1,0,0,0,1,1,1,1,1,1,0,0,0,0,1,0,0,0],[1,0,0,0,0,0,1,1,0,1,1,1,0,0,0,0,0,0,0,0],[1,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[1,0,1,0,1,0,1,1,0,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1],[1,0,1,1,1,0,1,1,0,1,1,1,0,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,0,1,0,0,1],[1,0,1,0,1,0,1,1,0,1,1,1,1,1,0,1,1,0,0,1],[1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1],[1,0,0,0,0,0,0,0,0,1,1,0,1,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0],[1,0,1,0,0,0,0,1,0,1,1,0,1,1,0,0,1,0,0,0],[1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,0,0]],"qvals":{"Lactobacillus":[0.060328,0.069049,0.075908,0.080283,0.088112,0.097579,0.231523,0.289101,0.525855,0.70922,1.007974,1.201771,1.553574,1.599172,5.854078,6.595315,6.607905,8.866548,13.418971,13.661957,14.823634,15.764357,18.037416,19.545256,20.76683,25.475285,27.823344,28.127747,28.674755,29.229731,34.00209,39.181052,41.874152,47.104779,49.119824,59.8588,61.213064,72.162542,75.847829,77.633679,85.61651,85.963337,87.591177,88.234698,91.341077,91.406861,92.529728,96.157266],"Bifidobacterium":[],"Enterococcus":[0.178329,0.631864,1.513545,1.749883,2.237946,2.73815,3.721067,3.843091,4.035769,4.291489,4.302454,4.607392,4.908663,5.171373,5.255666,5.347167,8.318982,10.19335,11.071202,12.804043,14.217563,21.315301,36.270607,36.348303,40.51011,41.883377,48.936015,52.446991,57.350158,74.199478],"Streptococcus":[0.066449,0.108663,0.193441,0.227513,0.229449,0.318091,0.360072,0.479643,0.600742,0.690513,1.539522,1.911887,1.988979,2.461865,2.765485,3.387981,8.159393,8.421537,8.708643,9.771462],"Bacteroides":[0.045876,0.0641,0.072237,0.080182,0.085818,0.096848,0.116308,0.403654,0.515605,0.531915,0.666914,1.921628,2.331055,2.813971,4.994739,6.354515,7.861351,10.656142,12.625015,20.392011],"Prevotella":[0.334448],"Alistipes":[0.039322,0.059521,0.073291,0.080182,0.08305,0.096316,0.119832,0.143843,0.231523,0.235334,0.38245,0.393032,0.502364,0.505942,0.739662,0.86001,1.446062,1.523435,1.596182,2.233658,2.403234,5.525407],"Faecalibacterium":[0.064713,0.192632,0.195577,0.212739,0.226103,0.260099,0.293442,0.352548,0.376924,0.396691,0.419413,0.49334,0.812231,0.979519,1.157973,1.41844,1.462431,1.561747,1.635861,2.11869,2.269416,4.97259,6.428611],"Butyricicoccus":[0.510942,0.776562,1.735761,8.828216,12.763973],"Ruminococcaceae":[0.060524,0.074807,0.090018,0.090202,0.091986,0.112305,0.126356,0.153433,0.159857,0.178826,0.237048,0.268396,0.305612,0.378549,0.39357,0.421382,0.44807,0.49334,0.496465,0.53249,0.596779,0.693985,0.7083,0.750215,0.757576,0.860766,0.903307,0.915683,0.926605,1.080351,1.082879,1.092588,1.151295,1.170569,1.183173,1.323685,1.450226,1.518027,1.887801,1.911808,2.781464,2.791684,2.844189,3.046325,3.101763,3.22104,3.311481,3.508974,4.206948,4.331503,6.362672,8.786817,11.434742,11.47496],"Lachnospiraceae":[0.167934,0.22056,0.380116,0.420509,0.772282,0.821312,0.846034,1.011317,1.021016,1.316936,1.94538,2.136302,2.455876,2.491806,2.909393,3.153923,3.291851,4.065019,4.11541,5.125483,6.893382,6.975633,7.20144,7.248623,7.383295,7.408334,8.264984,8.299199,8.720421,9.082218,9.589363,10.050099,10.734587,11.505135,12.033547,12.397748,14.964086,15.635421,17.666835,18.951237,19.593067,19.663326,26.031972,28.554902,30.910165,31.989425,33.211614,37.360576,38.414506,38.495553,39.762446,45.091268,45.989998,51.010841,59.717126,60.65785,63.161528,70.104277,70.587962],"Blautia":[0.039456,0.04188,0.052867,0.065154,0.06917,0.078845,0.085434,0.096316,0.180582,0.222866,0.249332,0.265407,0.332815,0.350579,0.362908,0.405892,0.437048,0.444609,0.49334,0.54124,0.664932,0.715423,0.741735,0.846684,0.895317,1.003344,1.09553,1.160386,1.356443,1.472089,1.513905,1.821806,1.843695,1.913775,2.234637,2.614379,2.853562,3.115613,3.360672,3.390115,4.302807,4.527429,6.284901,7.727705,10.447241,15.289868,15.448088,32.427483],"Clostridium":[0.019241,0.024567,0.076645,0.093025,0.131176,0.325003,0.452994,1.630723,2.595679,13.073508,18.747684,30.601454,33.729179,33.789326,36.070929,39.614373,42.179107,45.00591,51.507159,55.177813,56.375988,59.373041,66.856634,68.027915,72.001911,73.252603,75.903147,77.263514,78.219697,78.908175,80.580567,83.616669,85.676907,87.320234,89.263,91.35966,94.350076,97.073762],"Escherichia-Shigella":[0.022287,0.041981,0.054475,0.069664,0.087421,0.126946,0.183515,0.210837,0.212423,0.220602,0.302909,0.35665,2.002474,2.298851,4.847629,5.443813,7.112504,8.069035,8.946544,9.878778,10.215135,13.367296,27.124582,32.057863,32.727472],"Salmonella":[0.235585,0.545347,1.253918],"Campylobacter":[0.065696],"Enterobacteriaceae":[0.022287,0.036694,0.041981,0.049407,0.054475,0.055366,0.056184,0.069664,0.082414,0.098306,0.106792,0.113943,0.126946,0.12777,0.136111,0.144606,0.183515,0.19235,0.19305,0.212423,0.220602,0.231921,0.302909,0.35665,0.461707,0.505177,0.545347,0.956023,2.238059,3.594566,4.903686,5.335922,5.509401,8.069035,8.079252,9.080743,9.878778,10.215135,13.367296,27.124582,32.057863,32.727472],"Megamonas":[],"Megasphaera":[],"Akkermansia":[0.123544,0.244174,4.905289,7.975426]},"stats":[{"Target":"Lactobacillus","N_eligible":63,"N_detected":57,"Detection_rate_pct":90.5,"N_quantified":48,"N_below_LOQ":9,"N_not_detected":6,"Mean_pct":32.660438375885,"P5_pct":0.0774394755151517,"P10_pct":0.0947389171899633,"P25_pct":1.4656233531842588,"P50_pct":20.156042703333757,"P75_pct":60.19736578961609,"P90_pct":87.78423339128334,"P95_pct":91.38383669610604,"Reliability":"OK"},{"Target":"Bifidobacterium","N_eligible":63,"N_detected":1,"Detection_rate_pct":1.6,"N_quantified":0,"N_below_LOQ":1,"N_not_detected":62,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Enterococcus","N_eligible":63,"N_detected":43,"Detection_rate_pct":68.3,"N_quantified":30,"N_below_LOQ":13,"N_not_detected":20,"Mean_pct":17.346644217864558,"P5_pct":1.028620350210505,"P10_pct":1.7262494849711905,"P25_pct":3.891260822902693,"P50_pct":5.301416532436464,"P75_pct":32.53178027137762,"P90_pct":49.28711274089924,"P95_pct":55.14373269436733,"Reliability":"OK"},{"Target":"Streptococcus","N_eligible":63,"N_detected":23,"Detection_rate_pct":36.5,"N_quantified":20,"N_below_LOQ":3,"N_not_detected":40,"Mean_pct":2.6195664406166577,"P5_pct":0.1065527108103632,"P10_pct":0.1849633667891881,"P25_pct":0.2959303146848358,"P50_pct":1.1150176390540665,"P75_pct":2.921108763010753,"P90_pct":8.450247646498049,"P95_pct":8.76178400504292,"Reliability":"OK"},{"Target":"Bacteroides","N_eligible":63,"N_detected":24,"Detection_rate_pct":38.1,"N_quantified":20,"N_below_LOQ":4,"N_not_detected":39,"Mean_pct":3.631494225618204,"P5_pct":0.0631884511347796,"P10_pct":0.0714232063522642,"P25_pct":0.0940908481428781,"P50_pct":0.5994142826736459,"P75_pct":5.3346833613568005,"P90_pct":10.85302934446625,"P95_pct":13.013364524659528,"Reliability":"OK"},{"Target":"Prevotella","N_eligible":63,"N_detected":1,"Detection_rate_pct":1.6,"N_quantified":1,"N_below_LOQ":0,"N_not_detected":62,"Mean_pct":0.334448160535117,"P5_pct":0.334448160535117,"P10_pct":0.334448160535117,"P25_pct":0.334448160535117,"P50_pct":0.334448160535117,"P75_pct":0.334448160535117,"P90_pct":0.334448160535117,"P95_pct":0.334448160535117,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Alistipes","N_eligible":63,"N_detected":27,"Detection_rate_pct":42.9,"N_quantified":22,"N_below_LOQ":5,"N_not_detected":36,"Mean_pct":0.8760750573598053,"P5_pct":0.0602095677342081,"P10_pct":0.0739799103303485,"P25_pct":0.1021949958716597,"P50_pct":0.3877407292226186,"P75_pct":1.299548807502148,"P90_pct":2.1699105791166016,"P95_pct":2.3947550605247234,"Reliability":"OK"},{"Target":"Faecalibacterium","N_eligible":63,"N_detected":27,"Detection_rate_pct":42.9,"N_quantified":23,"N_below_LOQ":4,"N_not_detected":36,"Mean_pct":1.230510035688116,"P5_pct":0.1929263443701177,"P10_pct":0.1990094279563832,"P25_pct":0.2767702914035754,"P50_pct":0.493339911198816,"P75_pct":1.51208875169005,"P90_pct":2.239270985156054,"P95_pct":4.702272471524636,"Reliability":"OK"},{"Target":"Butyricicoccus","N_eligible":63,"N_detected":8,"Detection_rate_pct":12.7,"N_quantified":5,"N_below_LOQ":3,"N_not_detected":55,"Mean_pct":4.923090897338611,"P5_pct":0.5640658843424761,"P10_pct":0.6171899003729884,"P25_pct":0.7765619484645252,"P50_pct":1.7357609214926482,"P75_pct":8.828216296611071,"P90_pct":11.189670589732136,"P95_pct":11.976822020772492,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Ruminococcaceae","N_eligible":63,"N_detected":60,"Detection_rate_pct":95.2,"N_quantified":54,"N_below_LOQ":6,"N_not_detected":3,"Mean_pct":1.8200632221451225,"P5_pct":0.0901377165013095,"P10_pct":0.1165199126206761,"P25_pct":0.3823041573622023,"P50_pct":0.9094949410801648,"P75_pct":2.564049936648399,"P90_pct":3.9975556173622686,"P95_pct":7.211122972535344,"Reliability":"OK"},{"Target":"Lachnospiraceae","N_eligible":63,"N_detected":61,"Detection_rate_pct":96.8,"N_quantified":59,"N_below_LOQ":2,"N_not_detected":2,"Mean_pct":17.965804234482544,"P5_pct":0.4164692973693973,"P10_pct":0.8410897703473847,"P25_pct":3.031658004355479,"P50_pct":9.082217973231357,"P75_pct":29.732533817222787,"P90_pct":46.99416669873051,"P95_pct":60.90821823300941,"Reliability":"OK"},{"Target":"Blautia","N_eligible":63,"N_detected":57,"Detection_rate_pct":90.5,"N_quantified":48,"N_below_LOQ":9,"N_not_detected":6,"Mean_pct":2.83094393756925,"P5_pct":0.0571677096421131,"P10_pct":0.075942735661949,"P25_pct":0.3159629146941047,"P50_pct":0.8710006159916748,"P75_pct":2.6741748468403075,"P90_pct":6.717742045147758,"P95_pct":13.594948981545723,"Reliability":"OK"},{"Target":"Clostridium","N_eligible":63,"N_detected":40,"Detection_rate_pct":63.5,"N_quantified":38,"N_below_LOQ":2,"N_not_detected":23,"Mean_pct":47.90181572369883,"P5_pct":0.0688334337361688,"P10_pct":0.119730951665837,"P25_pct":14.492051816958645,"P50_pct":53.34248578758498,"P75_pct":77.9806511056511,"P90_pct":87.90306357514105,"P95_pct":91.80822206309703,"Reliability":"OK"},{"Target":"Escherichia-Shigella","N_eligible":63,"N_detected":26,"Detection_rate_pct":41.3,"N_quantified":25,"N_below_LOQ":1,"N_not_detected":37,"Mean_pct":6.639267353536001,"P5_pct":0.0444796265377894,"P10_pct":0.0605504770328415,"P25_pct":0.1835147744945567,"P50_pct":2.0024736439130693,"P75_pct":8.946544397226571,"P90_pct":21.62166762453089,"P95_pct":31.071206644153182,"Reliability":"OK"},{"Target":"Salmonella","N_eligible":63,"N_detected":5,"Detection_rate_pct":7.9,"N_quantified":3,"N_below_LOQ":2,"N_not_detected":58,"Mean_pct":0.6782835529796957,"P5_pct":0.2665613240265346,"P10_pct":0.2975375134750612,"P25_pct":0.3904660818206407,"P50_pct":0.5453470290632734,"P75_pct":0.8996327621805394,"P90_pct":1.112204202050899,"P95_pct":1.1830613486743522,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Campylobacter","N_eligible":63,"N_detected":4,"Detection_rate_pct":6.3,"N_quantified":1,"N_below_LOQ":3,"N_not_detected":59,"Mean_pct":0.065695828314902,"P5_pct":0.065695828314902,"P10_pct":0.065695828314902,"P25_pct":0.065695828314902,"P50_pct":0.065695828314902,"P75_pct":0.065695828314902,"P90_pct":0.065695828314902,"P95_pct":0.065695828314902,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Enterobacteriaceae","N_eligible":63,"N_detected":49,"Detection_rate_pct":77.8,"N_quantified":42,"N_below_LOQ":7,"N_not_detected":14,"Mean_pct":4.234914465908278,"P5_pct":0.0423521098287256,"P10_pct":0.0545641004940606,"P25_pct":0.1085797973245619,"P50_pct":0.2262615327912237,"P75_pct":5.227862871809483,"P90_pct":10.181498973064832,"P95_pct":26.436717689225333,"Reliability":"OK"},{"Target":"Megamonas","N_eligible":63,"N_detected":0,"Detection_rate_pct":0.0,"N_quantified":0,"N_below_LOQ":0,"N_not_detected":63,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Megasphaera","N_eligible":63,"N_detected":0,"Detection_rate_pct":0.0,"N_quantified":0,"N_below_LOQ":0,"N_not_detected":63,"Mean_pct":null,"P5_pct":null,"P10_pct":null,"P25_pct":null,"P50_pct":null,"P75_pct":null,"P90_pct":null,"P95_pct":null,"Reliability":"Insufficient (<10 quantified)"},{"Target":"Akkermansia","N_eligible":63,"N_detected":15,"Detection_rate_pct":23.8,"N_quantified":4,"N_below_LOQ":11,"N_not_detected":48,"Mean_pct":3.312108312788059,"P5_pct":0.1416385022793419,"P10_pct":0.1597330582120548,"P25_pct":0.2140167260101935,"P50_pct":2.5747314167053656,"P75_pct":5.672823003483231,"P90_pct":7.054385084230219,"P95_pct":7.514905777812546,"Reliability":"Insufficient (<10 quantified)"}],"meta":{"baseline_id":"FASTQ-DADA2-63 (built 2026-10-21)","label":"FASTQ reference","method":"Raw 16S FASTQ reads reprocessed with DADA2 1.38 (exact-sequence dereplication for two studies) and classified with SILVA 138.2","healthy":"45 specific-pathogen-free chicks aged 4\u20137 days (not inoculated) and 18 untreated broiler controls (no antibiotic, probiotic, feed additive or challenge); fecal samples","age_note":"Age recorded for 45 of 63 samples (4\u20137 d); not reported for the 18 untreated controls","median_age":5,"n_age":45,"farms":"Not reported in the source metadata","calibration":"Derived from 16S sequencing (FASTQ reprocessed with DADA2). Not yet calibrated against qPCR.","studies":4,"projects":["PRJDB10703","PRJDB11210","PRJDB12333","PRJEB32628"]}};window.GG_EXAMPLE="Sample_ID,Farm_ID,Collection_Date,Age_Days,Broiler_Layer,Breed,Country_Region,Sample_Site,Composite_Sample_N,Sampling_Points,Housing,Flock_Health,Feed_Diet,Probiotic,Antibiotic,Vaccination,FCR,Mortality_pct,Uniformity_pct,Litter,Diarrhea,Negative_Control_Ct,Extraction_Control_Ct,Positive_Control_Ct,Inhibition_Control_Shift_Ct,Total_Bacteria_Ct_1,Total_Bacteria_Ct_2,Total_Bacteria_Efficiency_pct,Lactobacillus_Ct_1,Lactobacillus_Ct_2,Lactobacillus_Efficiency_pct,Bifidobacterium_Ct_1,Bifidobacterium_Ct_2,Bifidobacterium_Efficiency_pct,Enterococcus_Ct_1,Enterococcus_Ct_2,Enterococcus_Efficiency_pct,Streptococcus_Ct_1,Streptococcus_Ct_2,Streptococcus_Efficiency_pct,Bacteroides_Ct_1,Bacteroides_Ct_2,Bacteroides_Efficiency_pct,Prevotella_Ct_1,Prevotella_Ct_2,Prevotella_Efficiency_pct,Alistipes_Ct_1,Alistipes_Ct_2,Alistipes_Efficiency_pct,Faecalibacterium_Ct_1,Faecalibacterium_Ct_2,Faecalibacterium_Efficiency_pct,Butyricicoccus_Ct_1,Butyricicoccus_Ct_2,Butyricicoccus_Efficiency_pct,Ruminococcaceae_Ct_1,Ruminococcaceae_Ct_2,Ruminococcaceae_Efficiency_pct,Lachnospiraceae_Ct_1,Lachnospiraceae_Ct_2,Lachnospiraceae_Efficiency_pct,Blautia_Ct_1,Blautia_Ct_2,Blautia_Efficiency_pct,Clostridium_Ct_1,Clostridium_Ct_2,Clostridium_Efficiency_pct,Escherichia-Shigella_Ct_1,Escherichia-Shigella_Ct_2,Escherichia-Shigella_Efficiency_pct,Salmonella_Ct_1,Salmonella_Ct_2,Salmonella_Efficiency_pct,Campylobacter_Ct_1,Campylobacter_Ct_2,Campylobacter_Efficiency_pct,Enterobacteriaceae_Ct_1,Enterobacteriaceae_Ct_2,Enterobacteriaceae_Efficiency_pct,Megamonas_Ct_1,Megamonas_Ct_2,Megamonas_Efficiency_pct,Megasphaera_Ct_1,Megasphaera_Ct_2,Megasphaera_Efficiency_pct,Akkermansia_Ct_1,Akkermansia_Ct_2,Akkermansia_Efficiency_pct\nGG-EX-01,FARM-A,2026-10-12,14,Broiler,Ross 308,Iran - Alborz,Fresh fecal composite,10,5,Commercial house,Healthy,Corn-soy starter,No,None since placement,Routine,1.31,0.9,86,Acceptable,Not observed,ND,ND,22.4,0.2,14.10,14.10,98,16.62,16.57,97,ND,ND,97,22.89,22.94,97,ND,ND,97,18.72,18.83,97,ND,ND,97,19.74,19.56,97,22.68,22.79,97,22.60,22.58,97,19.09,19.18,97,16.00,15.80,97,<LOQ,<LOQ,97,20.69,20.55,97,16.48,16.43,97,ND,ND,97,ND,ND,97,16.59,16.48,97,ND,ND,97,ND,ND,97,18.23,18.22,97\nGG-EX-02,FARM-B,2026-10-12,11,Broiler,Ross 308,Iran - Qazvin,Fresh fecal composite,10,5,Commercial house,Healthy,Corn-soy grower,\"Bacillus-based, in feed\",None since placement,Routine,1.42,1.8,81,Slightly wet,Not observed,ND,ND,22.7,0.4,13.90,13.88,98,17.78,17.98,97,ND,ND,97,20.73,21.64,97,15.05,15.15,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,22.22,22.23,97,18.85,18.66,97,21.25,21.34,97,23.51,23.56,97,15.03,15.02,97,21.98,22.11,97,ND,ND,97,15.14,14.85,97,ND,ND,97,ND,ND,97,ND,ND,97\nGG-EX-03,FARM-C,2026-10-13,21,Broiler,Cobb 500,Iran - Mazandaran,Fresh fecal composite,10,5,Commercial house,Some birds dull,Corn-soy grower,No,\"Enrofloxacin, day 10-14\",Routine,1.63,3.9,72,Wet,Mild,ND,ND,22.5,0.3,14.40,14.50,98,23.30,23.22,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,ND,ND,97,16.39,16.27,97,14.85,14.98,97,ND,ND,97,ND,ND,97,15.03,14.95,97,ND,ND,97,ND,ND,97,ND,ND,97\nGG-EX-04,FARM-D,2026-10-12,14,Broiler,Ross 308,Iran - Alborz,Fresh fecal composite,10,5,Commercial house,Healthy,Corn-soy starter,No,None since placement,Routine,1.31,0.9,86,Acceptable,Not observed,33.5,ND,22.4,0.2,14.10,14.10,98,16.62,16.57,97,ND,ND,97,22.89,22.94,97,ND,ND,97,18.72,18.83,97,ND,ND,97,19.74,19.56,97,22.68,22.79,97,22.60,22.58,97,19.09,19.18,97,16.00,15.80,97,<LOQ,<LOQ,97,20.69,20.55,97,16.48,16.43,97,ND,ND,97,ND,ND,97,16.59,16.48,97,ND,ND,97,ND,ND,97,18.23,18.22,97\n";window.GG_BUILD={"short": "Reference built by reprocessing raw FASTQ reads with DADA2 and SILVA 138.2"};</script>
+<script>/* GreenGut scoring engine v3 (2026-11-18). Changes requested by the scientific lead on 2026-11-01:
+   - results are estimated loads relative to the universal 16S assay; the 20 targets are never forced to sum to 100%
+   - reference percentiles from QUANTIFIED values only; ND / <LOD / <LOQ never become zero
+   - main percentiles P10-P90; P5/P95 exploratory only; a target enters the score only with >= 30 quantified reference values
+   - duplicates > 0.5 Ct, a single replicate, missing or out-of-range efficiency: result is flagged and excluded from the score
+   - sample-level QC failure (controls, inhibition, total-bacteria assay) => no score
+   - Salmonella and Campylobacter reported separately (Detected / Not detected / Inconclusive), never in the score
+   - generic Clostridium shown but not scored
+   - direction-aware penalties; overlapping targets (Blautia in Lachnospiraceae, E.coli/Shigella in Enterobacteriaceae) carry half weight each
+   - Shannon replaced by Target Panel Coverage; Aitchison/CLR replaced by Standardized Panel Distance
+   - Enterobacteriaceae is never replaced by the sum of its members; a mismatch is only a QC flag
+   - age is required; age-match confidence is reported */
 const GG = (() => {
   let TAXA = [], REF = null;
+  const VERSION = { platform: "0.3.0", algorithm: "GG-score 2026-11-18", panel: "GG 20-target panel, draft 1" };
+  const SCORE_MIN_Q = 30, RANGE_MIN_Q = 10;
+  const PATHOGENS = ["Salmonella", "Campylobacter"];
+  const NOT_SCORED = { "Clostridium": "Generic Clostridium is not scored; it will be replaced by a C. perfringens or other specific assay." };
   const BENEFICIAL = ["Lactobacillus", "Bifidobacterium", "Faecalibacterium", "Butyricicoccus", "Ruminococcaceae", "Lachnospiraceae", "Blautia"];
-  const OPPORTUNIST = ["Enterococcus", "Streptococcus", "Clostridium", "Escherichia-Shigella", "Salmonella", "Campylobacter", "Enterobacteriaceae"];
-  const GROUP = t => BENEFICIAL.includes(t) ? "beneficial" : OPPORTUNIST.includes(t) ? "opportunist" : "other";
+  const OPPORTUNIST = ["Enterococcus", "Streptococcus", "Escherichia-Shigella", "Enterobacteriaceae", "Clostridium"];
+  const GROUP = t => PATHOGENS.includes(t) ? "pathogen" : BENEFICIAL.includes(t) ? "beneficial" : OPPORTUNIST.includes(t) ? "opportunist" : "other";
+  const WEIGHT = { "Blautia": .5, "Lachnospiraceae": .5, "Escherichia-Shigella": .5, "Enterobacteriaceae": .5 };
+  const wOf = t => WEIGHT[t] ?? 1;
   const WEIGHTS = { R: 0.35, B: 0.20, O: 0.20, D: 0.15, C: 0.10 };
   const POINTS = { good: 1, watch: 0.5, alert: 0 };
 
-  // ---- rules: band -> [status, label]; bands: <P10, P10-25, P25-75, P75-90, P90-95, >P95 ----
-  const B = ["lt10", "p10_25", "p25_75", "p75_90", "p90_95", "gt95"];
-  const rule = (arr, source) => ({ map: Object.fromEntries(B.map((b, i) => [b, arr[i]])), source });
-  const g = (l) => ["good", l], w = (l) => ["watch", l], a = (l) => ["alert", l];
+  // band order: <P10, P10-25, P25-75, P75-90, >P90 (P5 and P95 are exploratory and never used for status)
+  const B = ["lt10", "p10_25", "p25_75", "p75_90", "gt90"];
+  const rule = (arr, source, direction) => ({ map: Object.fromEntries(B.map((b, i) => [b, arr[i]])), source, direction });
+  const g = l => ["good", l], w = l => ["watch", l], a = l => ["alert", l];
   const RULES = {
-    "Lactobacillus": rule([a("Low"), w("Below typical"), g("Normal"), g("Upper normal"), w("High, monitor"), w("High, monitor")], "expert draft"),
-    "Bifidobacterium": rule([a("Low"), w("Below typical"), g("Normal"), g("Normal"), g("High, acceptable"), g("High, acceptable")], "expert draft"),
-    "Enterococcus": rule([g("Low, no concern"), g("Normal"), g("Normal"), g("Upper normal"), w("Raised"), a("Markedly raised")], "expert draft"),
-    "Streptococcus": rule([w("Low"), g("Normal"), g("Normal"), g("Upper normal"), a("High"), a("High")], "expert draft"),
+    "Lactobacillus": rule([a("Low"), w("Below typical"), g("Normal"), g("Upper normal"), w("High, monitor")], "expert draft", "low-weighted"),
+    "Bifidobacterium": rule([a("Low"), w("Below typical"), g("Normal"), g("Normal"), g("High, acceptable")], "expert draft", "low-weighted"),
+    "Enterococcus": rule([g("Low, no concern"), g("Normal"), g("Normal"), g("Upper normal"), w("Raised")], "expert draft", "high-weighted"),
+    "Streptococcus": rule([w("Low"), g("Normal"), g("Normal"), g("Upper normal"), a("High")], "expert draft", "two-sided, high weighted more"),
   };
   const DEFAULTS = {
-    beneficial: rule([a("Low"), w("Below typical"), g("Normal"), g("Normal"), g("High, acceptable"), g("High, acceptable")], "provisional default"),
-    opportunist: rule([g("Low, no concern"), g("Normal"), g("Normal"), g("Upper normal"), w("Raised"), a("Markedly raised")], "provisional default"),
-    other: rule([w("Unusually low"), g("Normal"), g("Normal"), g("Normal"), w("Unusually high"), w("Unusually high")], "provisional default"),
+    beneficial: rule([a("Low"), w("Below typical"), g("Normal"), g("Normal"), g("High, acceptable")], "provisional", "low-weighted"),
+    opportunist: rule([g("Low, no concern"), g("Normal"), g("Normal"), w("Upper range"), a("High")], "provisional", "high-weighted"),
+    other: rule([w("Unusually low"), g("Normal"), g("Normal"), g("Normal"), w("Unusually high")], "provisional", "two-sided"),
   };
-  const ruleFor = t => RULES[t] || DEFAULTS[GROUP(t)];
-  // Food-safety targets: any quantified result needs follow-up
-  const FOOD_SAFETY = ["Salmonella", "Campylobacter"];
+  const ruleFor = t => RULES[t] || DEFAULTS[GROUP(t)] || DEFAULTS.other;
 
   const ABOUT = {
     "Lactobacillus": ["May point to weaker microbial protection or a disturbed early community.", "Often desirable; well above the range can mean overgrowth or a sample from higher in the gut."],
@@ -419,193 +446,248 @@ const GG = (() => {
   const aboutFor = (t, dir) => (ABOUT[t] || {
     beneficial: ["Fewer of these helpful fermenters than usual.", "More than usual; generally not a concern."],
     opportunist: ["Lower than usual; generally not a concern.", "More than usual; worth watching, especially with other raised groups."],
-    other: ["Lower than usual for healthy chicks.", "Higher than usual for healthy chicks."]
+    other: ["Lower than usual for healthy chicks.", "Higher than usual for healthy chicks."],
+    pathogen: ["", ""]
   }[GROUP(t)])[dir === "low" ? 0 : 1];
 
-  // ---- reference ----
+  // ---- maths ----
   const quantile = (s, q) => { const n = s.length; if (!n) return NaN; const h = (n - 1) * q, lo = Math.floor(h); return s[lo] + (h - lo) * (s[Math.ceil(h)] - s[lo]); };
-  const median = a => quantile([...a].sort((x, y) => x - y), .5);
+  const sortN = a => [...a].sort((x, y) => x - y);
   const below = (arr, x) => arr.filter(v => v < x).length;
-  function leaves(v) { // v: % with ND as 0
-    const i = t => TAXA.indexOf(t);
-    const L = TAXA.filter(t => t !== "Lachnospiraceae" && t !== "Enterobacteriaceae").map(t => v[i(t)]);
-    L.push(Math.max(0, v[i("Lachnospiraceae")] - v[i("Blautia")]));
-    L.push(Math.max(0, v[i("Enterobacteriaceae")] - v[i("Escherichia-Shigella")] - v[i("Salmonella")]));
-    return L;
+  const scorable = t => !PATHOGENS.includes(t) && !NOT_SCORED[t] && REF.stats[t].N_quantified >= SCORE_MIN_Q;
+
+  // Target Panel Coverage: weighted share of the "core" targets (healthy detection >= 50%, scorable) that are quantified
+  function coverage(obs) {
+    let num = 0, den = 0;
+    REF.core.forEach(t => { const o = obs[TAXA.indexOf(t)]; if (o.state === "missing" || o.qcExcluded) return; den += wOf(t); if (o.state === "quant") num += wOf(t); });
+    return den ? 100 * num / den : NaN;
   }
-  function clr(x) { const nz = x.filter(v => v > 0), ps = nz.length ? .5 * Math.min(...nz) : 1e-6;
-    const l = x.map(v => Math.log(v > 0 ? v : ps)), m = l.reduce((a, b) => a + b, 0) / l.length; return l.map(v => v - m); }
-  const shannon = x => { const s = x.reduce((a, b) => a + b, 0); return s > 0 ? -x.reduce((h, v) => v > 0 ? h + v / s * Math.log(v / s) : h, 0) : 0; };
-  const dist = (a, b) => Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0));
+  // Standardized Panel Distance: weighted RMS of robust z-scores of log10 load (median, IQR/1.349) over quantified scorable targets
+  function distance(obs) {
+    let s = 0, wsum = 0, n = 0;
+    REF.distT.forEach(t => { const o = obs[TAXA.indexOf(t)]; if (o.state !== "quant" || o.qcExcluded || !(o.pct > 0)) return;
+      const st = REF.stats[t], z = (Math.log10(o.pct) - Math.log10(st.P50_pct)) / REF.scale[t]; s += wOf(t) * z * z; wsum += wOf(t); n++; });
+    return n >= 2 ? { d: Math.sqrt(s / wsum), n } : { d: NaN, n };
+  }
 
   function init(ref) {
     REF = ref; TAXA = ref.taxa;
     REF.stats = Object.fromEntries(ref.stats.map(s => [s.Target, s]));
-    const C = ref.rows.map(r => clr(leaves(r)));
-    REF.centroid = C[0].map((_, j) => median(C.map(c => c[j])));
-    REF.dRef = C.map(c => dist(c, REF.centroid)).sort((a, b) => a - b);
-    REF.hRef = ref.rows.map(r => shannon(leaves(r))).sort((a, b) => a - b);
-    // score every reference sample to set status cut-offs
-    REF.scores = ref.rows.map((r, k) => score(r.map((v, j) => ref.quant[k][j] ? { state: "quant", pct: v } : { state: v > 0 ? "loq" : "nd", pct: v }), true).total).sort((a, b) => a - b);
+    REF.core = TAXA.filter(t => scorable(t) && REF.stats[t].Detection_rate_pct >= 50);
+    REF.distT = TAXA.filter(scorable);
+    REF.scale = Object.fromEntries(REF.distT.map(t => { const st = REF.stats[t]; const iqr = Math.log10(st.P75_pct) - Math.log10(st.P25_pct); return [t, Math.max(iqr / 1.349, 0.1)]; }));
+    const refObs = ref.rows.map((r, k) => r.map((v, j) => ref.quant[k][j] ? { state: "quant", pct: v } : { state: v > 0 ? "loq" : "nd" }));
+    REF.covRef = sortN(refObs.map(coverage).filter(v => !isNaN(v)));
+    REF.covMed = quantile(REF.covRef, .5);
+    REF.dRef = sortN(refObs.map(o => distance(o).d).filter(v => !isNaN(v)));
+    REF.scores = sortN(refObs.map(o => score(o, { internal: true }).total).filter(v => v != null));
     REF.cut = { P10: quantile(REF.scores, .10), P25: quantile(REF.scores, .25) };
   }
 
   function classify(t, obs) {
     const s = REF.stats[t], grp = GROUP(t), q = REF.qvals[t] || [];
-    const out = { taxon: t, group: grp, obs, ref: s, rule: ruleFor(t).source, rank: null, band: null, status: "na", label: "", dir: null };
-    if (FOOD_SAFETY.includes(t) && obs.state === "quant" && s.N_quantified < 10) {
-      // food-safety targets are flagged whenever quantified, even when the healthy reference is too small for percentiles
-      out.status = "watch"; out.label = "Detected, confirm with a specific test"; out.dir = "high"; return out; }
-    if (s.N_quantified < 10) { out.status = "na"; out.label = "Reference too small"; return out; }
+    const out = { taxon: t, group: grp, obs, ref: s, rule: ruleFor(t).source, rank: null, band: null, status: "na", label: "", dir: null, weight: wOf(t), scored: false };
+    if (obs.state === "quant" && s.N_quantified >= RANGE_MIN_Q) out.rank = 100 * below(q, obs.pct) / q.length;
+    if (obs.state === "quant" && s.N_quantified >= RANGE_MIN_Q)
+      out.band = obs.pct < s.P10_pct ? "lt10" : obs.pct < s.P25_pct ? "p10_25" : obs.pct <= s.P75_pct ? "p25_75" : obs.pct <= s.P90_pct ? "p75_90" : "gt90";
+    if (grp === "pathogen") { out.status = "na"; out.label = "Reported separately"; return out; }
+    if (NOT_SCORED[t]) { out.status = "na"; out.label = "Not scored (generic genus)"; return out; }
+    if (obs.qcExcluded) { out.status = "qc"; out.label = obs.qcReason; return out; }
     if (obs.state === "missing") { out.status = "na"; out.label = "Not measured"; return out; }
+    if (s.N_quantified < SCORE_MIN_Q) { out.status = "na"; out.label = `Reference too small to score (${s.N_quantified} quantified, needs ${SCORE_MIN_Q})`; return out; }
+    out.scored = true;
     if (obs.state !== "quant") {
       const st = obs.state === "nd" ? "Not detected" : obs.state === "lod" ? "Below detection limit" : "Below quantification limit";
-      if (FOOD_SAFETY.includes(t)) { out.status = "good"; out.label = st; return out; }
       if (grp === "beneficial" && s.Detection_rate_pct >= 80) { out.status = "watch"; out.label = st + " (usually present)"; out.dir = "low"; return out; }
-      out.status = grp === "opportunist" ? "good" : "info"; out.label = st; return out;
+      if (grp === "opportunist") { out.status = "good"; out.label = st; return out; }
+      out.status = "info"; out.label = st; out.scored = false; return out;
     }
-    const x = obs.pct;
-    out.rank = 100 * below(q, x) / q.length;
-    out.band = x < s.P10_pct ? "lt10" : x < s.P25_pct ? "p10_25" : x <= s.P75_pct ? "p25_75" : x <= s.P90_pct ? "p75_90" : x <= s.P95_pct ? "p90_95" : "gt95";
     const [st, lab] = ruleFor(t).map[out.band]; out.status = st; out.label = lab;
-    out.dir = out.band === "lt10" || out.band === "p10_25" ? "low" : (out.band === "p90_95" || out.band === "gt95") ? "high" : null;
-    if (FOOD_SAFETY.includes(t)) { out.status = out.band === "gt95" || out.band === "p90_95" ? "alert" : "watch"; out.label = "Detected, confirm with a specific test"; out.dir = "high"; }
+    out.dir = out.band === "lt10" || out.band === "p10_25" ? "low" : out.band === "gt90" || (out.band === "p75_90" && st !== "good") ? "high" : null;
     return out;
   }
 
-  function score(obsArr, internal = false) {
+  function pathogenCall(t, obs) {
+    if (obs.state === "missing") return { taxon: t, call: "Not tested", why: "No result supplied." };
+    if (obs.qcExcluded) return { taxon: t, call: "Inconclusive", why: obs.qcReason + " Repeat the test." };
+    if (obs.state === "nd") return { taxon: t, call: "Not detected", why: "Not detected in either replicate." };
+    if (obs.state === "lod" || obs.state === "loq") return { taxon: t, call: "Inconclusive", why: `Reported as ${obs.state === "lod" ? "below the detection limit" : "below the quantification limit"}. Repeat or confirm with a specific test.` };
+    return { taxon: t, call: "Detected", why: "Amplified in both replicates. Confirm with culture or a specific confirmatory PCR." };
+  }
+
+  function score(obsArr, opt = {}) {
     const res = TAXA.map((t, j) => classify(t, obsArr[j]));
     const pts = r => POINTS[r.status];
-    const scored = res.filter(r => r.status in POINTS);
-    const meanPts = a => a.length ? 100 * a.reduce((s, r) => s + pts(r), 0) / a.length : 100;
-    const v = obsArr.map(o => o.state === "quant" ? o.pct : 0);
-    const L = leaves(v), cs = clr(L), d = dist(cs, REF.centroid), H = shannon(L);
-    const dPct = 100 * below(REF.dRef, d) / REF.dRef.length, hPct = 100 * below(REF.hRef, H) / REF.hRef.length;
-    const comp = { R: meanPts(scored), B: meanPts(scored.filter(r => r.group === "beneficial")), O: meanPts(scored.filter(r => r.group === "opportunist")),
-      D: hPct < 50 ? Math.min(100, 2 * hPct) : 100, C: 100 - dPct };
-    const total = Object.keys(WEIGHTS).reduce((s, k) => s + WEIGHTS[k] * comp[k], 0);
-    if (internal) return { total };
+    const wmean = a => { const W = a.reduce((s, r) => s + r.weight, 0); return W ? 100 * a.reduce((s, r) => s + r.weight * pts(r), 0) / W : null; };
+    const scored = res.filter(r => r.scored && r.status in POINTS);
+    const cov = coverage(obsArr), dist = distance(obsArr);
+    const dPct = isNaN(dist.d) ? null : 100 * below(REF.dRef, dist.d) / REF.dRef.length;
+    const comp = { R: wmean(scored), B: wmean(scored.filter(r => r.group === "beneficial")), O: wmean(scored.filter(r => r.group === "opportunist")),
+      D: isNaN(cov) ? null : Math.min(100, 100 * cov / REF.covMed), C: dPct == null ? null : 100 - dPct };
+    const keys = Object.keys(WEIGHTS).filter(k => comp[k] != null), wsum = keys.reduce((s, k) => s + WEIGHTS[k], 0);
+    const qcFail = opt.qcFail || [];
+    const total = qcFail.length || !keys.length || comp.R == null ? null : keys.reduce((s, k) => s + WEIGHTS[k] * comp[k], 0) / wsum;
+    if (opt.internal) return { total };
+    const pathogens = PATHOGENS.map(t => pathogenCall(t, obsArr[TAXA.indexOf(t)]));
     const nAlert = res.filter(r => r.status === "alert").length, nWatch = res.filter(r => r.status === "watch").length;
-    const status = total >= REF.cut.P25 ? "good" : total >= REF.cut.P10 ? "watch" : "attention";
-    const risk = status === "attention" || nAlert >= 3 ? "High" : (status === "watch" || nAlert >= 1) ? "Moderate" : nWatch >= 2 ? "Low to moderate" : "Low";
-    return { res, comp, total, status, risk, nAlert, nWatch, scorePct: 100 * below(REF.scores, total) / REF.scores.length,
-      shannon: H, shannonPct: hPct, distance: d, distancePct: dPct, similarity: 100 - dPct,
-      distanceCat: dPct < 50 ? "Low" : dPct < 90 ? "Moderate" : "High", panelSum: L.reduce((a, b) => a + b, 0),
-      nScored: scored.length };
+    const status = total == null ? "noscore" : total >= REF.cut.P25 ? "good" : total >= REF.cut.P10 ? "watch" : "attention";
+    const risk = total == null ? "Not assessed" : status === "attention" || nAlert >= 3 ? "High" : (status === "watch" || nAlert >= 1) ? "Moderate" : nWatch >= 2 ? "Low to moderate" : "Low";
+    return { res, comp, keys, total, status, risk, nAlert, nWatch, pathogens, qcFail,
+      scorePct: total == null ? null : 100 * below(REF.scores, total) / REF.scores.length,
+      coverage: cov, coverageRef: REF.covMed, distance: dist.d, distanceN: dist.n, distancePct: dPct,
+      distanceCat: dPct == null ? "Not assessed" : dPct < 50 ? "Low" : dPct < 90 ? "Moderate" : "High",
+      panelSum: obsArr.reduce((s, o) => s + (o.state === "quant" ? o.pct : 0), 0), nScored: scored.length };
+  }
+
+  // ---- age match ----
+  function ageMatch(age) {
+    const m = REF.meta || {}; if (age == null || isNaN(age)) return { level: "Unknown", note: "Age not supplied." };
+    if (age < 0 || age > 21) return { level: "Low", note: `Age ${age} d is outside the 0–21 d reference. Compare with care.` };
+    if (m.median_age == null) return { level: "Moderate", note: "Reference ages are not recorded." };
+    const d = Math.abs(age - m.median_age);
+    return d <= 3 ? { level: "High", note: `Within 3 days of the reference median age (${m.median_age} d).` }
+      : { level: "Moderate", note: `${Math.round(d)} days from the reference median age (${m.median_age} d).` };
   }
 
   // ---------------- input ----------------
   const tok = s => String(s ?? "").trim();
   const toNum = s => { const t = tok(s).replace(/[٬,]/g, ".").replace(/[۰-۹]/g, c => "۰۱۲۳۴۵۶۷۸۹".indexOf(c)); return t === "" ? NaN : Number(t); };
   const stateOf = s => { const t = tok(s).toLowerCase(); if (!t) return "missing";
-    if (/^(nd|n\/d|not detected|undetermined|undet|no ct|-)$/.test(t)) return "nd"; if (/lod|bdl/.test(t)) return "lod"; if (/loq/.test(t)) return "loq"; return isNaN(toNum(t)) ? "missing" : "num"; };
-  const relPct = (ct, ctTot, e = 1, eTot = 1) => 100 * Math.pow(1 + e, -ct) / Math.pow(1 + eTot, -ctTot);
+    if (/^(nd|n\/d|not detected|undetermined|undet|no ct|-)$/.test(t)) return "nd"; if (/lod|bdl/.test(t)) return "lod"; if (/loq/.test(t)) return "loq"; return isNaN(toNum(t)) ? "bad" : "num"; };
+  const relPct = (ct, ctTot, e, eTot) => 100 * Math.pow(1 + e, -ct) / Math.pow(1 + eTot, -ctTot);
 
   function parseCSV(text) {
-    const rows = []; let row = [], f = "", q = false;
+    const rows = []; let row = [], f = "", q = false, line = 1, rowLine = 1;
     for (let i = 0; i < text.length; i++) { const c = text[i];
-      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else { if (c === "\n") line++; f += c; } }
       else if (c === '"') q = true; else if (c === "," || c === ";" || c === "\t") { row.push(f); f = ""; }
-      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); if (row.some(x => x.trim())) rows.push(row); row = []; f = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); if (row.some(x => x.trim())) { row.line = rowLine; rows.push(row); } row = []; f = ""; line++; rowLine = line; }
       else f += c; }
-    row.push(f); if (row.some(x => x.trim())) rows.push(row);
+    row.push(f); if (row.some(x => x.trim())) { row.line = rowLine; rows.push(row); }
+    if (!rows.length) return [];
     const head = rows.shift().map(h => h.trim().replace(/^﻿/, ""));
-    return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
+    return rows.map(r => { const o = Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])); Object.defineProperty(o, "__line", { value: r.line }); return o; });
   }
   const nk = s => s.toLowerCase().replace(/[\s\-_]/g, "");
   const META = ["Sample_ID", "Farm_ID", "Flock_ID", "Collection_Date", "Age_Days", "Broiler_Layer", "Breed", "Sex", "Country_Region", "Sample_Site", "Composite_Sample_N",
     "Sampling_Points", "Housing", "Flock_Health", "Feed_Diet", "Probiotic", "Antibiotic", "Vaccination", "FCR", "Mortality_pct", "Uniformity_pct", "Litter", "Diarrhea"];
+  const REQUIRED = ["Sample_ID", "Age_Days", "Total_Bacteria_Ct_1", "Total_Bacteria_Ct_2", "Total_Bacteria_Efficiency_pct"];
+  function col(r, name) { const k = Object.keys(r).find(c => nk(c) === nk(name)); return k ? r[k] : undefined; }
+  const hasCol = (cols, name) => cols.some(c => nk(c) === nk(name));
 
-  // Ct pair -> {ct, flag}
+  // file-level and cell-level validation: returns [{row, column, message}]
+  function validate(recs) {
+    const errs = []; if (!recs.length) return [{ row: 1, column: "-", message: "The file has column names but no samples." }];
+    const cols = Object.keys(recs[0]);
+    REQUIRED.forEach(c => { if (!hasCol(cols, c)) errs.push({ row: 1, column: c, message: "Required column is missing." }); });
+    const anyTarget = TAXA.some(t => hasCol(cols, t + "_Ct_1"));
+    if (!anyTarget) errs.push({ row: 1, column: "<Target>_Ct_1", message: "No bacteria columns found. Start from the blank form so the column names match." });
+    if (errs.length) return errs;
+    const seen = new Set();
+    recs.forEach(r => {
+      const row = r.__line, id = col(r, "Sample_ID");
+      if (!tok(id)) errs.push({ row, column: "Sample_ID", message: "Sample_ID is empty." });
+      else if (seen.has(id)) errs.push({ row, column: "Sample_ID", message: `Duplicate Sample_ID "${id}".` }); else seen.add(id);
+      const age = toNum(col(r, "Age_Days"));
+      if (isNaN(age)) errs.push({ row, column: "Age_Days", message: "Age in days is required and must be a number." });
+      else if (age < 0 || age > 600) errs.push({ row, column: "Age_Days", message: `Age ${age} is not plausible.` });
+      const ctCols = ["Total_Bacteria"].concat(TAXA).flatMap(t => [t + "_Ct_1", t + "_Ct_2"]).concat(["Negative_Control_Ct", "Extraction_Control_Ct", "Positive_Control_Ct"]);
+      ctCols.forEach(c => { if (!hasCol(cols, c)) return; const v = col(r, c), st = stateOf(v);
+        if (st === "bad") errs.push({ row, column: c, message: `"${v}" is not a Ct value. Use a number, ND, <LOD or <LOQ.` });
+        else if (st === "num" && (toNum(v) < 5 || toNum(v) > 45)) errs.push({ row, column: c, message: `Ct ${v} is outside 5–45.` }); });
+      ["Total_Bacteria"].concat(TAXA).forEach(t => { const c = t + "_Efficiency_pct"; if (!hasCol(cols, c)) return; const v = col(r, c); if (!tok(v)) return;
+        const e = toNum(v); if (isNaN(e)) errs.push({ row, column: c, message: `"${v}" is not a number.` }); else if (e < 50 || e > 150) errs.push({ row, column: c, message: `Efficiency ${e}% is not plausible (expected about 90–110).` }); });
+      const inh = col(r, "Inhibition_Control_Shift_Ct"); if (inh !== undefined && tok(inh) && isNaN(toNum(inh))) errs.push({ row, column: "Inhibition_Control_Shift_Ct", message: `"${inh}" is not a number.` });
+      ["Total_Bacteria"].concat(TAXA).forEach(t => { const a = col(r, t + "_Ct_1"), b = col(r, t + "_Ct_2");
+        if (a === undefined && b === undefined) return; if (!!tok(a) !== !!tok(b)) errs.push({ row, column: t + (tok(a) ? "_Ct_2" : "_Ct_1"), message: "Duplicate is missing: enter both replicates, or ND/<LOD/<LOQ." }); });
+    });
+    return errs;
+  }
+
   function ctPair(a, b) {
     const sa = stateOf(a), sb = stateOf(b);
     if (sa === "missing" && sb === "missing") return { state: "missing" };
     const nums = [a, b].filter(x => stateOf(x) === "num").map(toNum);
     const nonnum = [sa, sb].filter(s => s !== "num" && s !== "missing");
-    if (!nums.length) return { state: nonnum[0] || "missing" };
+    if (!nums.length) return { state: nonnum.includes("lod") ? "lod" : nonnum.includes("loq") ? "loq" : nonnum[0] || "missing", mixed: new Set(nonnum).size > 1 };
     const ct = nums.reduce((s, v) => s + v, 0) / nums.length;
     const diff = nums.length === 2 ? Math.abs(nums[0] - nums[1]) : null;
-    return { state: "num", ct, diff, discordant: nums.length === 1 && nonnum.length > 0 };
+    return { state: "num", ct, diff, single: nums.length === 1 };
   }
 
   function samplesFromRecords(recs) {
-    if (!recs.length) return [];
-    const cols = Object.keys(recs[0]);
-    if (cols.includes("Target_Group")) { // long template
-      const by = new Map(); recs.forEach(r => { const id = r.Sample_ID || "Sample-1"; if (!by.has(id)) by.set(id, []); by.get(id).push(r); });
-      return [...by.entries()].map(([id, rs]) => {
-        const meta = { Sample_ID: id }; META.forEach(k => { const v = rs.find(r => r[k])?.[k]; if (v) meta[k] = v; });
-        const get = name => rs.find(r => nk(r.Target_Group || "") === nk(name));
-        const rec = {};
-        const tot = rs.find(r => /^total/i.test(r.Target_Group || "")) || {};
-        rec.Total_Bacteria_Ct_1 = tot.Ct_Replicate_1 || tot.Mean_Ct; rec.Total_Bacteria_Ct_2 = tot.Ct_Replicate_2; rec.Total_Bacteria_Efficiency_pct = tot.Assay_Efficiency_pct;
-        TAXA.forEach(t => { const r = get(t) || {}; rec[t + "_Ct_1"] = r.Ct_Replicate_1 || r.Mean_Ct; rec[t + "_Ct_2"] = r.Ct_Replicate_2; rec[t + "_Efficiency_pct"] = r.Assay_Efficiency_pct;
-          rec[t + "_pct"] = r.Target_to_Total_Bacteria_pct; rec[t + "_QC"] = r.QC_Status; });
-        return fromWide({ ...meta, ...rec });
-      });
-    }
-    return recs.map((r, i) => fromWide({ Sample_ID: r.Sample_ID || `Sample-${i + 1}`, ...r }));
+    return recs.map((r, i) => fromWide({ Sample_ID: r.Sample_ID || `Sample-${i + 1}`, ...r }, r.__line));
   }
-  function col(r, name) { const k = Object.keys(r).find(c => nk(c) === nk(name)); return k ? r[k] : undefined; }
-  function fromWide(r) {
+  function fromWide(r, line) {
     const meta = {}; META.forEach(k => { const v = col(r, k); if (v) meta[k] = v; }); meta.Sample_ID = meta.Sample_ID || r.Sample_ID;
-    const qc = [];
-    const tot = ctPair(col(r, "Total_Bacteria_Ct_1") ?? col(r, "Total_Bacteria_Ct"), col(r, "Total_Bacteria_Ct_2"));
-    const eTot = (toNum(col(r, "Total_Bacteria_Efficiency_pct")) || 100) / 100;
-    if (tot.diff != null && tot.diff > 0.5) qc.push(["watch", `Total bacteria replicates differ by ${tot.diff.toFixed(2)} cycles (> 0.5).`]);
-    if (eTot < .9 || eTot > 1.1) qc.push(["watch", `Total bacteria assay efficiency ${Math.round(eTot * 100)}% is outside 90–110%.`]);
-    const ntc = col(r, "Negative_Control_Ct"), ext = col(r, "Extraction_Control_Ct");
-    if (ntc !== undefined && ntc !== "") qc.push(stateOf(ntc) === "num" && toNum(ntc) < 35 ? ["alert", `Negative control amplified (Ct ${ntc}); results may be contaminated.`] : ["good", "Negative control clean."]);
-    if (ext !== undefined && ext !== "") qc.push(stateOf(ext) === "num" && toNum(ext) < 35 ? ["alert", `Extraction blank amplified (Ct ${ext}).`] : ["good", "Extraction blank clean."]);
-    let mode = "";
+    const qc = [], qcFail = [], controls = [];
+    // ---- sample-level controls, each checked separately ----
+    const ntc = col(r, "Negative_Control_Ct"), ext = col(r, "Extraction_Control_Ct"), pos = col(r, "Positive_Control_Ct"), inh = col(r, "Inhibition_Control_Shift_Ct");
+    const ctl = (name, v, okFn, failMsg, okMsg) => { if (v === undefined || !tok(v)) { controls.push([name, "Not reported", "watch"]); return; }
+      if (okFn(v)) controls.push([name, okMsg, "good"]); else { controls.push([name, failMsg, "alert"]); qcFail.push(`${name}: ${failMsg}`); } };
+    ctl("Negative control (NTC)", ntc, v => !(stateOf(v) === "num" && toNum(v) < 35), `amplified at Ct ${ntc}; possible contamination`, "clean");
+    ctl("Extraction blank", ext, v => !(stateOf(v) === "num" && toNum(v) < 35), `amplified at Ct ${ext}; possible contamination`, "clean");
+    ctl("Positive control", pos, v => stateOf(v) === "num" && toNum(v) <= 35, "did not amplify as expected", `amplified (Ct ${pos})`);
+    ctl("Inhibition control", inh, v => Math.abs(toNum(v)) <= 1, `Ct shift ${inh} > 1 cycle; PCR inhibition likely`, `no inhibition (shift ${inh} Ct)`);
+    // ---- total bacteria assay ----
+    const tot = ctPair(col(r, "Total_Bacteria_Ct_1"), col(r, "Total_Bacteria_Ct_2"));
+    const eTotRaw = toNum(col(r, "Total_Bacteria_Efficiency_pct"));
+    if (tot.state !== "num") qcFail.push("Total bacteria (universal 16S) Ct is missing or not quantified, so loads cannot be calculated.");
+    else if (tot.single) qcFail.push("Total bacteria assay has only one valid replicate.");
+    else if (tot.diff > 0.5) qcFail.push(`Total bacteria replicates differ by ${tot.diff.toFixed(2)} Ct (> 0.5).`);
+    if (isNaN(eTotRaw)) qcFail.push("Total bacteria assay efficiency is missing; it is not assumed to be 100%.");
+    else if (eTotRaw < 90 || eTotRaw > 110) qcFail.push(`Total bacteria assay efficiency ${eTotRaw}% is outside 90–110%.`);
+    const eTot = eTotRaw / 100;
     const obs = TAXA.map(t => {
-      const pv = col(r, t + "_pct");
-      const ps = stateOf(pv);
-      if (ps === "num") { mode = "pct"; return { state: "quant", pct: toNum(pv) }; }
-      if (ps !== "missing") { mode = mode || "pct"; return { state: ps }; }
-      const p = ctPair(col(r, t + "_Ct_1") ?? col(r, t + "_Ct"), col(r, t + "_Ct_2"));
+      const p = ctPair(col(r, t + "_Ct_1"), col(r, t + "_Ct_2"));
       if (p.state === "missing") return { state: "missing" };
-      if (p.state !== "num") { mode = "Ct"; return { state: p.state }; }
-      if (tot.state !== "num") return { state: "missing" };
-      mode = "Ct";
-      const e = (toNum(col(r, t + "_Efficiency_pct")) || 100) / 100;
-      if (p.diff != null && p.diff > 0.5) qc.push(["watch", `${t}: replicates differ by ${p.diff.toFixed(2)} cycles.`]);
-      if (p.discordant) qc.push(["watch", `${t}: detected in one replicate only.`]);
-      if (e < .9 || e > 1.1) qc.push(["watch", `${t}: assay efficiency ${Math.round(e * 100)}% outside 90–110%.`]);
-      return { state: "quant", pct: relPct(p.ct, tot.ct, e, eTot), ct: p.ct };
+      const effRaw = toNum(col(r, t + "_Efficiency_pct"));
+      if (p.state !== "num") { const o = { state: p.state }; if (p.mixed) { o.qcExcluded = true; o.qcReason = "Replicates disagree (ND vs <LOD/<LOQ)."; } return o; }
+      const o = { state: "quant", ct: p.ct, diff: p.diff };
+      const exclude = why => { o.qcExcluded = true; o.qcReason = why; qc.push(["watch", `${t}: ${why} Excluded from the score.`]); };
+      if (p.single) exclude("detected in one replicate only.");
+      else if (p.diff > 0.5) exclude(`replicates differ by ${p.diff.toFixed(2)} Ct (> 0.5).`);
+      if (isNaN(effRaw)) { if (!o.qcExcluded) exclude("assay efficiency missing; not assumed to be 100%."); }
+      else if (effRaw < 90 || effRaw > 110) { if (!o.qcExcluded) exclude(`assay efficiency ${effRaw}% outside 90–110%.`); }
+      if (tot.state === "num" && !isNaN(effRaw) && !isNaN(eTotRaw)) o.pct = relPct(p.ct, tot.ct, effRaw / 100, eTot);
+      else { o.state = "missing"; o.qcExcluded = true; o.qcReason = o.qcReason || "Load not calculable."; }
+      return o;
     });
-    // family must contain its member genera
+    // Enterobacteriaceae vs its members: QC flag only, never replaced
     const ix = t => TAXA.indexOf(t);
-    [["Lachnospiraceae", ["Blautia"]], ["Enterobacteriaceae", ["Escherichia-Shigella", "Salmonella"]]].forEach(([fam, kids]) => {
-      const kq = kids.map(k => obs[ix(k)]).filter(o => o.state === "quant"); if (!kq.length) return;
-      const ksum = kq.reduce((s, o) => s + o.pct, 0), f = obs[ix(fam)];
-      if (f.state !== "quant" || f.pct < ksum) { qc.push(["watch", `${fam} was ${f.state === "quant" ? "lower than" : "not quantified despite"} its member genera (${kids.join(", ")}); set to their sum.`]); obs[ix(fam)] = { state: "quant", pct: ksum }; }
+    [["Enterobacteriaceae", ["Escherichia-Shigella", "Salmonella"]], ["Lachnospiraceae", ["Blautia"]]].forEach(([fam, kids]) => {
+      const f = obs[ix(fam)], kq = kids.map(k => obs[ix(k)]).filter(o => o.state === "quant"); if (!kq.length || f.state === "missing") return;
+      const ksum = kq.reduce((s, o) => s + o.pct, 0);
+      if (f.state !== "quant" || f.pct < ksum * 0.8) qc.push(["watch", `${fam} is ${f.state === "quant" ? "lower than" : "not quantified despite"} its member target(s) (${kids.join(", ")}). Reported as measured; check the assays.`]);
     });
-    if (tot.state !== "num" && mode === "Ct") qc.push(["alert", "Total bacteria Ct is missing, so shares cannot be calculated."]);
-    const missing = TAXA.filter((t, j) => obs[j].state === "missing");
+    const missing = TAXA.filter((t, j) => obs[j].state === "missing" && !obs[j].qcExcluded);
     if (missing.length) qc.push(["watch", `${missing.length} target(s) not measured: ${missing.join(", ")}.`]);
-    return { meta, obs, qc, mode: mode || "pct" };
+    const age = toNum(col(r, "Age_Days"));
+    return { meta, obs, qc, qcFail, controls, age: isNaN(age) ? null : age, line };
   }
 
-  return { init, score, samplesFromRecords, parseCSV, GROUP, ABOUT: aboutFor, RULES, ruleFor, WEIGHTS, BENEFICIAL, OPPORTUNIST,
-    get TAXA() { return TAXA; }, get REF() { return REF; } };
+  return { init, score, samplesFromRecords, parseCSV, validate, ageMatch, GROUP, ABOUT: aboutFor, RULES, ruleFor, WEIGHTS, VERSION, PATHOGENS, NOT_SCORED,
+    SCORE_MIN_Q, RANGE_MIN_Q, scorable: t => scorable(t), wOf, get TAXA() { return TAXA; }, get REF() { return REF; } };
 })();
 if (typeof module !== "undefined") module.exports = GG;
 </script>
 <script>(() => {
 const REF = window.GG_REF, EXAMPLE_CSV = window.GG_EXAMPLE, BUILD = window.GG_BUILD; GG.init(REF);
+const M = REF.meta, V = GG.VERSION, QMIN = GG.SCORE_MIN_Q, RMIN = GG.RANGE_MIN_Q;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const pctS = v => v == null || isNaN(v) ? "–" : v < 0.001 ? "<0.001" : v < 0.1 ? v.toFixed(3) : v < 10 ? v.toFixed(2) : v.toFixed(1);
 const pctF = v => v == null || isNaN(v) ? "–" : pctS(v) + "%";
 const ord = n => { n = Math.round(n); const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
-const STATUS = { good: "Looks normal", watch: "Keep an eye on it", attention: "Needs attention" };
-const ST_TXT = { good: "In range", watch: "Keep an eye on it", alert: "Needs attention", na: "Not scored", info: "For information" };
-const SC = { ink: "#141A16", ink2: "#56625B", rule: "#DCE2DD", band0: "#EEF2EF", band: "#E3E9E4", band2: "#BFCCC3", yolk: "#F2B21B",
-  good: "#2F7A4E", watch: "#B5770C", alert: "#AE3B2B", na: "#8A968F", info: "#8A968F", goodT: "#DCEFE3", watchT: "#F8EBCF", badT: "#F6DDD8" };
+const STATUS = { good: "Looks normal", watch: "Keep an eye on it", attention: "Needs attention", noscore: "No score: lab QC failed" };
+const ST_TXT = { good: "In range", watch: "Keep an eye on it", alert: "Needs attention", na: "Not scored", info: "For information", qc: "QC: excluded" };
+const SC = { ink: "#141A16", ink2: "#56625B", rule: "#DCE2DD", band0: "#F1F4F2", band: "#E3E9E4", band2: "#BFCCC3", yolk: "#F2B21B",
+  good: "#2F7A4E", watch: "#B5770C", alert: "#AE3B2B", na: "#8A968F", info: "#8A968F", qc: "#6B5B95", goodT: "#DCEFE3", watchT: "#F8EBCF", badT: "#F6DDD8" };
 const FONT = "IBM Plex Mono, Menlo, Consolas, monospace", SERIF = "Source Serif 4, Georgia, serif";
-const GROUPNAME = { beneficial: "Helpful", opportunist: "To watch", other: "Other gut residents" };
+const GROUPNAME = { beneficial: "Beneficial", opportunist: "Opportunistic", other: "Two-sided (other residents)", pathogen: "Food-safety pathogen" };
+const DIRTXT = { "low-weighted": "low matters more", "high-weighted": "high matters more", "two-sided": "very low or very high", "two-sided, high weighted more": "both sides, high matters more" };
 const S = t => REF.stats[t];
+const qrate = st => 100 * st.N_quantified / st.N_eligible;
 const ABOUT = {
   "Lactobacillus": "Lactic-acid bacteria that help keep the young gut settled and protected.",
   "Bifidobacterium": "Sugar fermenters often used as probiotics; chicks usually carry little.",
@@ -617,13 +699,13 @@ const ABOUT = {
   "Faecalibacterium": "Makes butyrate, a fuel for the cells lining the gut.",
   "Butyricicoccus": "Another butyrate producer, usually at low levels.",
   "Ruminococcaceae": "A family of fibre-digesting bacteria.",
-  "Lachnospiraceae": "A large family that turns fibre into short-chain fatty acids.",
-  "Blautia": "A common fermenter inside the Lachnospiraceae family.",
-  "Clostridium": "A broad group; most are harmless, but it includes the cause of necrotic enteritis.",
-  "Escherichia-Shigella": "The E. coli group. Some is normal; a lot can signal imbalance.",
-  "Salmonella": "A food-safety bacterium that should be absent or very low.",
-  "Campylobacter": "A food-safety bacterium chickens often carry without signs.",
-  "Enterobacteriaceae": "The family that includes E. coli and Salmonella.",
+  "Lachnospiraceae": "A large family that turns fibre into short-chain fatty acids. Contains Blautia, so each carries half weight.",
+  "Blautia": "A common fermenter inside the Lachnospiraceae family. Carries half weight to avoid double counting.",
+  "Clostridium": "A broad group; most are harmless. Shown but not scored until a C. perfringens assay replaces it.",
+  "Escherichia-Shigella": "The E. coli group. Part of Enterobacteriaceae, so each carries half weight.",
+  "Salmonella": "Food-safety pathogen. Reported separately as detected, not detected or inconclusive; never part of the score.",
+  "Campylobacter": "Food-safety pathogen. Reported separately as detected, not detected or inconclusive; never part of the score.",
+  "Enterobacteriaceae": "The family that includes E. coli and Salmonella. Reported as measured, never replaced by its members.",
   "Megamonas": "A sugar fermenter often found in poultry.",
   "Megasphaera": "Feeds on lactate made by other bacteria; usually low.",
   "Akkermansia": "Lives on the gut's mucus layer; usually low in chicks."
@@ -640,29 +722,33 @@ async function saveFile(filename, data) {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); return "saved";
 }
-const say = (t, err) => { $("#msg").innerHTML = t ? `<p class="msg${err ? " err" : ""}">${t}</p>` : ""; };
+const say = (t, err) => { $("#msg").innerHTML = t ? `<div class="msg${err ? " err" : ""}">${t}</div>` : ""; };
 const tip = $("#tip");
 document.addEventListener("pointermove", e => { const el = e.target.closest?.("[data-tip]"); if (!el) { tip.hidden = true; return; }
   tip.innerHTML = el.getAttribute("data-tip"); tip.hidden = false;
   tip.style.left = Math.min(window.innerWidth - tip.offsetWidth - 8, e.clientX + 12) + "px"; const y = e.clientY - tip.offsetHeight - 10; tip.style.top = (y < 8 ? e.clientY + 16 : y) + "px"; });
 
 // ---------- reference box ----------
-$("#ref-n").textContent = `${REF.n} samples`; $("#n-ref").textContent = REF.n;
-$("#ref-src").textContent = `${REF.projects.length} published ${REF.projects.length > 1 ? "studies" : "study"}`;
+$("#n-ref").textContent = REF.n;
+$("#ref-dl").innerHTML = [["Reference", esc(M.label)], ["Samples", `${REF.n} chickens`], ["Studies", `${M.studies} published BioProjects`], ["Farms", esc(M.farms)],
+  ["Median age", `${M.median_age} d <span class="note">(${esc(M.age_note)})</span>`], ["Method", esc(M.method)], ["Healthy means", esc(M.healthy)],
+  ["Scored targets", `${GG.TAXA.filter(GG.scorable).length} of 20 (≥ ${QMIN} quantified reference values)`]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+$("#ref-cal").textContent = M.calibration;
 $("#ref-build").textContent = BUILD.short;
+$("#ver").textContent = `Platform ${V.platform} · ${V.algorithm} · Baseline ${M.baseline_id} · ${V.panel}`;
 
 // ---------- explorer ----------
 let exMode = "found", exTaxon = "Lactobacillus";
-$("#ex-mode").innerHTML = [["found", "How often it is found"], ["amount", "Typical amount"]].map(([k, l]) => `<button class="chipbtn" data-k="${k}" aria-pressed="${k === exMode}">${l}</button>`).join("");
+$("#ex-mode").innerHTML = [["found", "How often it is found"], ["amount", "Typical load"]].map(([k, l]) => `<button class="chipbtn" data-k="${k}" aria-pressed="${k === exMode}">${l}</button>`).join("");
 $("#ex-mode").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; exMode = b.dataset.k;
   $("#ex-mode").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.k === exMode)); drawExplorer(); });
 const LMIN = -3, LMAX = 2;
 function drawExplorer() {
-  const order = ["beneficial", "opportunist", "other"];
-  const items = GG.TAXA.map(t => ({ t, g: GG.GROUP(t), det: S(t).Detection_rate_pct, med: S(t).P50_pct, nq: S(t).N_quantified }));
+  const order = ["beneficial", "opportunist", "other", "pathogen"];
+  const items = GG.TAXA.map(t => ({ t, g: GG.GROUP(t), det: S(t).Detection_rate_pct, med: S(t).P50_pct, nq: S(t).N_quantified, sc: GG.scorable(t) }));
   items.sort((a, b) => order.indexOf(a.g) - order.indexOf(b.g) || (exMode === "found" ? b.det - a.det : (b.med || 0) - (a.med || 0)));
-  $("#ex-bars-title").textContent = exMode === "found" ? "How often each bacterium is found" : "Typical amount when present";
-  $("#ex-bars-note").textContent = exMode === "found" ? "Share of healthy chicks in which it was detected" : "Median estimated share of total bacteria, among chicks where it could be measured";
+  $("#ex-bars-title").textContent = exMode === "found" ? "How often each target is detected" : "Typical load when quantified";
+  $("#ex-bars-note").textContent = exMode === "found" ? "Share of healthy reference chickens in which it was detected. Solid bars are scored targets; faded bars are shown only." : "Median estimated load relative to universal 16S, among chickens where it was quantified";
   const W = 420, LBL = 150, rowH = 19, H = items.length * rowH + 30, x0 = LBL + 6, x1 = W - 46;
   const Xd = v => x0 + v / 100 * (x1 - x0);
   const Xa = v => x0 + (Math.max(LMIN, Math.min(LMAX, v > 0 ? Math.log10(v) : LMIN)) - LMIN) / (LMAX - LMIN) * (x1 - x0);
@@ -670,46 +756,55 @@ function drawExplorer() {
   const ticks = exMode === "found" ? [0, 25, 50, 75, 100].map(v => [Xd(v), v + "%"]) : [-3, -2, -1, 0, 1, 2].map(l => [Xa(10 ** l), ["0.001", "0.01", "0.1", "1", "10", "100%"][l + 3]]);
   ticks.forEach(([x, l]) => s += `<line x1="${x}" x2="${x}" y1="4" y2="${H - 22}" stroke="var(--rule)"/><text x="${x}" y="${H - 8}" font-size="9" text-anchor="middle" fill="var(--ink-2)">${l}</text>`);
   items.forEach((d, i) => {
-    const y = 4 + i * rowH, on = d.t === exTaxon, col = d.g === "beneficial" ? "var(--good)" : d.g === "opportunist" ? "var(--bad)" : "var(--dot-2)";
+    const y = 4 + i * rowH, on = d.t === exTaxon, col = d.g === "beneficial" ? "var(--good)" : d.g === "opportunist" || d.g === "pathogen" ? "var(--bad)" : "var(--dot-2)";
     const v = exMode === "found" ? d.det : d.med, xe = exMode === "found" ? Xd(v) : (v ? Xa(v) : x0);
-    const lab = exMode === "found" ? `${Math.round(v)}%` : (d.nq >= 10 ? pctS(v) : "too few");
-    s += `<g class="bar-row" data-t="${d.t}" role="button" tabindex="0" aria-label="${d.t}" data-tip="<i>${d.t}</i><br>found in ${Math.round(d.det)}% of chicks<br>${d.nq >= 10 ? "typical amount " + pctF(d.med) : "too few measurements for a range"}">
+    const lab = exMode === "found" ? `${Math.round(v)}%` : (d.nq >= RMIN ? pctS(v) : "too few");
+    s += `<g class="bar-row" data-t="${d.t}" role="button" tabindex="0" aria-label="${d.t}" data-tip="<i>${d.t}</i><br>detected in ${Math.round(d.det)}%, quantified in ${d.nq} chickens<br>${d.sc ? "used in the score" : "shown only, not scored"}">
       <rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" fill="${on ? "var(--brand-tint)" : "transparent"}" rx="4"/>
       <text x="${LBL}" y="${y + 13}" font-size="11.5" text-anchor="end" font-style="italic" font-family="${SERIF}" fill="var(--ink)" font-weight="${on ? 600 : 400}">${d.t}</text>
-      <rect x="${x0}" y="${y + 5}" width="${Math.max(0, xe - x0)}" height="9" rx="2" fill="${col}" opacity="${exMode === "amount" && d.nq < 10 ? .25 : on ? 1 : .75}"/>
+      <rect x="${x0}" y="${y + 5}" width="${Math.max(0, xe - x0)}" height="9" rx="2" fill="${col}" opacity="${!d.sc ? .3 : on ? 1 : .8}"/>
       <text x="${Math.max(xe, x0) + 5}" y="${y + 13}" font-size="9.5" fill="var(--ink-2)">${lab}</text></g>`;
   });
   $("#ex-bars").innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${$("#ex-bars-title").textContent}">${s}</svg>`;
   $("#ex-bars").querySelectorAll(".bar-row").forEach(g => { const pick = () => { exTaxon = g.dataset.t; drawExplorer(); };
     g.addEventListener("click", pick); g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }); });
-  const st = S(exTaxon), g = GG.GROUP(exTaxon), vals = REF.qvals[exTaxon] || [];
-  $("#ex-desc").innerHTML = `<span class="pill ${g === "opportunist" ? "opportunist" : g}">${GROUPNAME[g]}</span><span class="tx">${exTaxon}</span><p class="note" style="color:var(--ink)">${ABOUT[exTaxon]}</p>`;
-  $("#ex-stats").innerHTML = [["Found in", Math.round(st.Detection_rate_pct) + "%"], ["Measured in", st.N_quantified + " chicks"], ["Typical", st.N_quantified >= 10 ? pctF(st.P50_pct) : "–"],
-    ["Usual range", st.N_quantified >= 10 ? `${pctS(st.P10_pct)}–${pctS(st.P90_pct)}%` : "–"]].map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
+  const st = S(exTaxon), g = GG.GROUP(exTaxon), vals = REF.qvals[exTaxon] || [], sc = GG.scorable(exTaxon), ok = st.N_quantified >= RMIN;
+  $("#ex-desc").innerHTML = `<span class="pill ${g === "pathogen" ? "opportunist" : g}">${GROUPNAME[g]}</span><span class="tx">${exTaxon}</span><p class="note" style="color:var(--ink)">${ABOUT[exTaxon]}</p><p class="note">${sc ? `Used in the score (${st.N_quantified} quantified reference values).` : g === "pathogen" ? "Reported separately; never part of the score." : GG.NOT_SCORED[exTaxon] ? "Shown but not scored." : `Shown only: ${st.N_quantified} quantified reference values, ${QMIN} needed to score.`}</p>`;
+  $("#ex-stats").innerHTML = [["Reference N", st.N_eligible], ["Detected", `${st.N_detected} (${Math.round(st.Detection_rate_pct)}%)`], ["Quantified", `${st.N_quantified} (${Math.round(qrate(st))}%)`],
+    ["Median P50", ok ? pctF(st.P50_pct) : "–"], ["P10–P90", ok ? `${pctS(st.P10_pct)}–${pctS(st.P90_pct)}%` : "–"], ["P25–P75", ok ? `${pctS(st.P25_pct)}–${pctS(st.P75_pct)}%` : "–"]]
+    .map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join("");
   const SW = 420, SH = 140, sx0 = 12, sx1 = SW - 12, cy = 58;
   const SX = v => sx0 + (Math.max(LMIN, Math.min(LMAX, Math.log10(Math.max(v, 1e-9)))) - LMIN) / (LMAX - LMIN) * (sx1 - sx0);
   let seed = 11; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
   let sv = "";
-  if (st.N_quantified >= 10) {
+  if (ok) {
     sv += `<rect x="${SX(st.P10_pct)}" y="${cy - 32}" width="${Math.max(2, SX(st.P90_pct) - SX(st.P10_pct))}" height="64" rx="6" fill="var(--brand-tint)"/>
-      <text x="${(SX(st.P10_pct) + SX(st.P90_pct)) / 2}" y="${cy - 38}" font-size="9.5" text-anchor="middle" fill="var(--brand)">usual range (P10–P90)</text>
+      <text x="${(SX(st.P10_pct) + SX(st.P90_pct)) / 2}" y="${cy - 38}" font-size="9.5" text-anchor="middle" fill="var(--brand)">reference range (P10–P90)</text>
       <line x1="${SX(st.P50_pct)}" x2="${SX(st.P50_pct)}" y1="${cy - 32}" y2="${cy + 32}" stroke="var(--ink)" stroke-width="2"/>`;
   }
-  vals.forEach(v => sv += `<circle cx="${SX(v)}" cy="${cy + (rnd() - .5) * 50}" r="${vals.length > 120 ? 2.6 : 3.6}" fill="var(--dot)" opacity=".7" data-tip="One chick: ${pctF(v)}"/>`);
+  vals.forEach(v => sv += `<circle cx="${SX(v)}" cy="${cy + (rnd() - .5) * 50}" r="${vals.length > 120 ? 2.6 : 3.6}" fill="var(--dot)" opacity=".7" data-tip="One chicken: ${pctF(v)}"/>`);
   [-3, -2, -1, 0, 1, 2].forEach(l => sv += `<text x="${SX(10 ** l)}" y="${SH - 6}" font-size="9" text-anchor="${l === -3 ? "start" : l === 2 ? "end" : "middle"}" fill="var(--ink-2)">${["0.001%", "0.01%", "0.1%", "1%", "10%", "100%"][l + 3]}</text>`);
-  $("#ex-strip").innerHTML = `<svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="${exTaxon} amounts">${sv}</svg>`;
+  $("#ex-strip").innerHTML = `<svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="${exTaxon} loads">${sv}</svg>`;
   const nd = st.N_eligible - st.N_detected, bq = st.N_below_LOQ;
-  $("#ex-cap").textContent = `${vals.length} chicks shown. Not detected in ${nd}${bq ? `, too little to measure in ${bq}` : ""}; those are left out rather than counted as zero.` + (st.N_quantified < 10 ? " Too few measurements yet to set a usual range." : "");
+  $("#ex-cap").textContent = `${vals.length} quantified chickens shown. Not detected in ${nd}${bq ? `, below quantification in ${bq}` : ""}; those are left out, never counted as zero.` + (!ok ? " Too few measurements to set a range." : "");
 }
 
 // ---------- intake ----------
+function errTable(errs) {
+  const rows = errs.slice(0, 40).map(e => `<tr><td>${e.row}</td><td>${esc(e.column)}</td><td>${esc(e.message)}</td></tr>`).join("");
+  return `<table class="errs"><thead><tr><th>Row</th><th>Column</th><th>Problem</th></tr></thead><tbody>${rows}</tbody></table>${errs.length > 40 ? `<p class="note">and ${errs.length - 40} more.</p>` : ""}`;
+}
 function ingest(text, name) {
   try {
-    const s = GG.samplesFromRecords(GG.parseCSV(text));
-    if (!s.length) throw new Error("The file has column names but no samples.");
-    if (s.every(x => x.obs.every(o => o.state === "missing"))) throw new Error("We could not find the bacteria columns. Please start from the blank form so the column names match.");
-    samples = s; current = 0;
-    say(`${s.length} sample${s.length > 1 ? "s" : ""} loaded from ${esc(name)}.`);
+    const recs = GG.parseCSV(text);
+    const errs = GG.validate(recs);
+    const fileLevel = errs.filter(e => e.row === 1);
+    if (fileLevel.length || !recs.length) { say(`<b>${esc(name)} could not be read.</b> Fix these problems and upload again:${errTable(errs)}`, true); return; }
+    const badRows = new Set(errs.map(e => e.row));
+    const all = GG.samplesFromRecords(recs), ok = all.filter(s => !badRows.has(s.line));
+    if (!ok.length) { say(`<b>No sample in ${esc(name)} passed the file checks.</b>${errTable(errs)}`, true); return; }
+    samples = ok; current = 0;
+    say(`${ok.length} sample${ok.length > 1 ? "s" : ""} loaded from ${esc(name)}.` + (errs.length ? ` <b>${all.length - ok.length} row(s) skipped</b> because of file errors:${errTable(errs)}` : ""), errs.length > 0);
     $("#report").hidden = false; $("#nav-report").hidden = false; $("#batch-box").hidden = false;
     render(); $("#report").scrollIntoView({ block: "start" });
   } catch (e) { say(esc(e.message), true); }
@@ -727,7 +822,7 @@ const dlExample = async () => { if (await saveFile("greengut_example_qpcr.csv", 
 $("#dl-example").addEventListener("click", dlExample); $("#dl-example-2").addEventListener("click", dlExample);
 const FORM_META = ["Sample_ID", "Farm_ID", "Flock_ID", "Collection_Date", "Age_Days", "Broiler_Layer", "Breed", "Country_Region", "Sample_Site", "Composite_Sample_N", "Sampling_Points",
   "Housing", "Flock_Health", "Feed_Diet", "Probiotic", "Antibiotic", "Vaccination", "FCR", "Mortality_pct", "Uniformity_pct", "Litter", "Diarrhea",
-  "Negative_Control_Ct", "Extraction_Control_Ct", "Total_Bacteria_Ct_1", "Total_Bacteria_Ct_2", "Total_Bacteria_Efficiency_pct"];
+  "Negative_Control_Ct", "Extraction_Control_Ct", "Positive_Control_Ct", "Inhibition_Control_Shift_Ct", "Total_Bacteria_Ct_1", "Total_Bacteria_Ct_2", "Total_Bacteria_Efficiency_pct"];
 $("#dl-template").addEventListener("click", async () => {
   const head = FORM_META.concat(GG.TAXA.flatMap(t => [t + "_Ct_1", t + "_Ct_2", t + "_Efficiency_pct"]));
   if (await saveFile("greengut_blank_form.csv", head.join(",") + "\n") === "saved") say("Blank form saved.");
@@ -738,8 +833,10 @@ function gauge(score, status) {
   const col = status === "good" ? SC.good : status === "watch" ? SC.watch : SC.alert;
   const cx = 125, cy = 124, r = 92, a = s => Math.PI * (1 - s / 100), pt = (s, rr = r) => [cx + rr * Math.cos(a(s)), cy - rr * Math.sin(a(s))];
   const arc = (s0, s1) => { const [x0, y0] = pt(s0), [x1, y1] = pt(s1); return `M${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1}`; };
-  const [nx, ny] = pt(score, r - 30);
   const ticks = [0, 25, 50, 75, 100].map(s => { const [lx, ly] = pt(s, r + 18); return `<text x="${lx}" y="${ly + 3}" font-size="9" text-anchor="middle" fill="${SC.ink2}" font-family="${FONT}">${s}</text>`; }).join("");
+  if (score == null) return `<svg viewBox="0 0 250 172" width="230" height="158" role="img" aria-label="No score"><path d="${arc(0.01, 100)}" stroke="${SC.band}" stroke-width="18" fill="none"/>${ticks}
+    <text x="${cx}" y="${cy + 6}" font-size="26" font-weight="500" text-anchor="middle" fill="${SC.ink2}" font-family="${FONT}">no score</text></svg>`;
+  const [nx, ny] = pt(score, r - 30);
   return `<svg viewBox="0 0 250 172" width="230" height="158" role="img" aria-label="Gut balance score ${score.toFixed(0)} of 100">
     <path d="${arc(0.01, 100)}" stroke="${SC.band}" stroke-width="18" fill="none"/><path d="${arc(0.01, Math.max(.5, Math.min(100, score)))}" stroke="${col}" stroke-width="18" fill="none"/>${ticks}
     <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${SC.ink}" stroke-width="2.5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" fill="${SC.yolk}" stroke="${SC.ink}" stroke-width="2"/>
@@ -751,41 +848,44 @@ function histo({ values, sample, zones, xmin, xmax, bins = 24, w = 330, h = 120,
   const cmax = Math.max(...counts, 1), X = v => L + (Math.max(xmin, Math.min(xmax, v)) - xmin) / (xmax - xmin) * iw;
   const zone = (zones || []).map(z => `<rect x="${X(z.from)}" y="${T}" width="${Math.max(0, X(z.to) - X(z.from))}" height="${ih}" fill="${z.fill}"/>`).join("");
   const bars = counts.map((c, i) => `<rect x="${X(xmin + i * step) + .6}" y="${T + ih - c / cmax * ih}" width="${Math.max(.5, iw / bins - 1.2)}" height="${c / cmax * ih}" fill="${SC.band2}"/>`).join("");
-  const sx = X(sample), anc = sx > w - 80 ? "end" : sx < 80 ? "start" : "middle";
+  let mark = "";
+  if (sample != null && !isNaN(sample)) { const sx = X(sample), anc = sx > w - 80 ? "end" : sx < 80 ? "start" : "middle";
+    mark = `<line x1="${sx}" x2="${sx}" y1="${T - 4}" y2="${T + ih}" stroke="${SC.ink}" stroke-width="1.6"/><circle cx="${sx}" cy="${T + ih}" r="5" fill="${SC.yolk}" stroke="${SC.ink}" stroke-width="1.6"/>
+    <text x="${sx}" y="${T - 7}" font-size="9.5" font-weight="600" text-anchor="${anc}" fill="${SC.ink}" font-family="${FONT}">your sample ${fmt(sample)}</text>`; }
   const ticks = [0, .25, .5, .75, 1].map(f => { const v = xmin + f * (xmax - xmin); return `<text x="${X(v)}" y="${h - 12}" font-size="8.5" text-anchor="${f === 0 ? "start" : f === 1 ? "end" : "middle"}" fill="${SC.ink2}" font-family="${FONT}">${fmt(v)}</text>`; }).join("");
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(xlab)}">${zone}${bars}<line x1="${L}" x2="${w - R}" y1="${T + ih}" y2="${T + ih}" stroke="${SC.ink2}"/>
-    <line x1="${sx}" x2="${sx}" y1="${T - 4}" y2="${T + ih}" stroke="${SC.ink}" stroke-width="1.6"/><circle cx="${sx}" cy="${T + ih}" r="5" fill="${SC.yolk}" stroke="${SC.ink}" stroke-width="1.6"/>
-    <text x="${sx}" y="${T - 7}" font-size="9.5" font-weight="600" text-anchor="${anc}" fill="${SC.ink}" font-family="${FONT}">your sample ${fmt(sample)}</text>${ticks}
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(xlab)}">${zone}${bars}<line x1="${L}" x2="${w - R}" y1="${T + ih}" y2="${T + ih}" stroke="${SC.ink2}"/>${mark}${ticks}
     <text x="${w / 2}" y="${h - 1}" font-size="8.5" text-anchor="middle" fill="${SC.ink2}">${esc(xlab)}</text></svg>`;
 }
+const STXT = t => t.status === "good" ? "in range" : t.status === "watch" ? "watch" : t.status === "alert" ? "attention" : t.status === "info" ? "info" : t.status === "qc" ? "QC excluded" : "not scored";
 function ranges(r) {
-  const order = ["beneficial", "opportunist", "other"], names = { beneficial: "Helpful bacteria", opportunist: "Bacteria to watch", other: "Other gut residents" };
+  const order = ["beneficial", "opportunist", "other"], names = { beneficial: "Beneficial (low matters more)", opportunist: "Opportunistic (high matters more)", other: "Two-sided (very low or very high)" };
   const rows = []; order.forEach(g => { rows.push({ head: names[g] }); r.res.filter(x => x.group === g).forEach(x => rows.push(x)); });
-  const W = 690, LBL = 132, x0 = LBL + 6, x1 = 470, cV = 520, cR = 565, cD = 610, cS = 690, rowH = 19, headH = 20;
+  const W = 690, LBL = 128, x0 = LBL + 6, x1 = 420, cV = 470, cR = 507, cN = 590, cS = 690, rowH = 19, headH = 20;
   const X = v => x0 + (Math.max(LMIN, Math.min(LMAX, Math.log10(Math.max(v, 1e-9)))) - LMIN) / (LMAX - LMIN) * (x1 - x0);
   let y = 22, out = "";
   [-3, -2, -1, 0, 1, 2].forEach(l => out += `<text x="${X(10 ** l)}" y="12" font-size="8.5" text-anchor="middle" fill="${SC.ink2}" font-family="${FONT}">${["0.001%", "0.01%", "0.1%", "1%", "10%", "100%"][l + 3]}</text>`);
-  [[cV, "amount"], [cR, "pctl"], [cD, "found in"]].forEach(([x, l]) => out += `<text x="${x}" y="12" font-size="8.5" text-anchor="end" fill="${SC.ink2}">${l}</text>`);
+  [[cV, "load %"], [cR, "pctl"], [cN, "ref N q/d/tot"]].forEach(([x, l]) => out += `<text x="${x}" y="12" font-size="8.5" text-anchor="end" fill="${SC.ink2}">${l}</text>`);
   out += `<text x="${cS}" y="12" font-size="8.5" text-anchor="end" fill="${SC.ink2}">status</text>`;
   rows.forEach(t => {
     if (t.head) { out += `<text x="0" y="${y + 13}" font-size="9.5" font-weight="600" letter-spacing=".6" fill="${SC.ink2}">${t.head.toUpperCase()}</text>`; y += headH; return; }
-    const cy = y + rowH / 2, s = t.ref, col = SC[t.status], ok = s.N_quantified >= 10, q = t.obs.state === "quant";
-    out += `<text x="0" y="${cy + 3.5}" font-size="11" font-style="italic" fill="${SC.ink}" font-family="${SERIF}">${t.taxon}</text>`;
-    if (ok) out += `<rect x="${X(s.P5_pct)}" y="${cy - 4}" width="${Math.max(2, X(s.P95_pct) - X(s.P5_pct))}" height="8" rx="2" fill="${SC.band0}"/>
-      <rect x="${X(s.P10_pct)}" y="${cy - 4}" width="${Math.max(2, X(s.P90_pct) - X(s.P10_pct))}" height="8" rx="2" fill="${SC.band}"/>
-      <rect x="${X(s.P25_pct)}" y="${cy - 4}" width="${Math.max(2, X(s.P75_pct) - X(s.P25_pct))}" height="8" rx="2" fill="${SC.band2}"/>
+    const cy = y + rowH / 2, s = t.ref, col = SC[t.status] || SC.na, ok = s.N_quantified >= RMIN, sc = GG.scorable(t.taxon), q = t.obs.state === "quant";
+    out += `<text x="0" y="${cy + 3.5}" font-size="11" font-style="italic" fill="${SC.ink}" font-family="${SERIF}">${t.taxon}${t.weight < 1 ? " ½" : ""}</text>`;
+    if (ok) out += `<rect x="${X(s.P5_pct)}" y="${cy - 3}" width="${Math.max(2, X(s.P95_pct) - X(s.P5_pct))}" height="6" rx="2" fill="${SC.band0}" stroke="${SC.band}" stroke-dasharray="2 2" stroke-width=".6"/>
+      <rect x="${X(s.P10_pct)}" y="${cy - 4}" width="${Math.max(2, X(s.P90_pct) - X(s.P10_pct))}" height="8" rx="2" fill="${SC.band}" opacity="${sc ? 1 : .55}"/>
+      <rect x="${X(s.P25_pct)}" y="${cy - 4}" width="${Math.max(2, X(s.P75_pct) - X(s.P25_pct))}" height="8" rx="2" fill="${SC.band2}" opacity="${sc ? 1 : .55}"/>
       <line x1="${X(s.P50_pct)}" x2="${X(s.P50_pct)}" y1="${cy - 6}" y2="${cy + 6}" stroke="${SC.ink2}" stroke-width="1.4"/>`;
-    else out += `<text x="${x0}" y="${cy + 3}" font-size="8.5" font-style="italic" fill="${SC.ink2}">no usual range yet</text>`;
-    if (q) out += `<circle cx="${X(t.obs.pct)}" cy="${cy}" r="4.8" fill="${SC.yolk}" stroke="${t.status === "good" || t.status === "na" || t.status === "info" ? SC.ink : col}" stroke-width="${t.status === "watch" || t.status === "alert" ? 2.6 : 1.4}"/>`;
+    else out += `<text x="${x0}" y="${cy + 3}" font-size="8.5" font-style="italic" fill="${SC.ink2}">no reference range (${s.N_quantified} quantified)</text>`;
+    if (q) out += `<circle cx="${X(t.obs.pct)}" cy="${cy}" r="4.8" fill="${t.status === "qc" ? "#fff" : SC.yolk}" stroke="${["watch", "alert", "qc"].includes(t.status) ? col : SC.ink}" stroke-width="${["watch", "alert", "qc"].includes(t.status) ? 2.6 : 1.4}"/>`;
     const amt = q ? pctS(t.obs.pct) : t.obs.state === "nd" ? "ND" : t.obs.state === "lod" ? "&lt;LOD" : t.obs.state === "loq" ? "&lt;LOQ" : "–";
+    const pr = t.rank == null ? "–" : sc ? Math.round(t.rank) : `(${Math.round(t.rank)})`;
     out += `<text x="${cV}" y="${cy + 3.5}" font-size="10" text-anchor="end" fill="${SC.ink}" font-family="${FONT}">${amt}</text>
-      <text x="${cR}" y="${cy + 3.5}" font-size="10" text-anchor="end" fill="${SC.ink2}" font-family="${FONT}">${t.rank != null ? Math.round(t.rank) : "–"}</text>
-      <text x="${cD}" y="${cy + 3.5}" font-size="10" text-anchor="end" fill="${SC.ink2}" font-family="${FONT}">${Math.round(s.Detection_rate_pct)}%</text>
-      <rect x="${cS - 66}" y="${cy - 6.5}" width="66" height="13" rx="3" fill="${col}"/><text x="${cS - 33}" y="${cy + 3}" font-size="8.2" text-anchor="middle" fill="#fff" font-weight="600">${t.status === "good" ? "in range" : t.status === "watch" ? "watch" : t.status === "alert" ? "attention" : t.status === "info" ? "info" : "not scored"}</text>`;
+      <text x="${cR}" y="${cy + 3.5}" font-size="10" text-anchor="end" fill="${SC.ink2}" font-family="${FONT}">${pr}</text>
+      <text x="${cN}" y="${cy + 3.5}" font-size="9.5" text-anchor="end" fill="${sc ? SC.ink2 : SC.na}" font-family="${FONT}">${s.N_quantified}/${s.N_detected}/${s.N_eligible}</text>
+      <rect x="${cS - 70}" y="${cy - 6.5}" width="70" height="13" rx="3" fill="${col}"/><text x="${cS - 35}" y="${cy + 3}" font-size="8.2" text-anchor="middle" fill="#fff" font-weight="600">${STXT(t)}</text>`;
     y += rowH;
   });
   const grid = [-3, -2, -1, 0, 1, 2].map(l => `<line x1="${X(10 ** l)}" x2="${X(10 ** l)}" y1="17" y2="${y}" stroke="${SC.rule}"/>`).join("");
-  return `<svg viewBox="0 0 ${W} ${y + 4}" width="100%" role="img" aria-label="Each bacterium against healthy chicks">${grid}${out}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${y + 4}" width="100%" role="img" aria-label="Each target against the healthy reference">${grid}${out}</svg>`;
 }
 
 // ---------- card ----------
@@ -794,78 +894,93 @@ const FACTS = [["Age_Days", "Age (days)"], ["Broiler_Layer", "Bird type"], ["Bre
   ["Feed_Diet", "Feed"], ["Probiotic", "Probiotic"], ["Antibiotic", "Antibiotic"], ["Vaccination", "Vaccination"], ["FCR", "FCR"], ["Mortality_pct", "Mortality (%)"],
   ["Uniformity_pct", "Uniformity (%)"], ["Litter", "Litter"], ["Diarrhea", "Diarrhoea"]];
 const list = a => a.length === 1 ? a[0] : a.slice(0, -1).join(", ") + " and " + a.at(-1);
-function message(r, s) {
+function message(r) {
+  if (r.total == null) return `<b>No balance score was produced</b> because the sample failed laboratory quality control. The measured loads are shown on page 2 for information only. Repeat the run after fixing the problem listed below.`;
   const it = a => a.map(x => `<i>${x.taxon}</i>`);
   const lowB = r.res.filter(x => x.group === "beneficial" && (x.status === "alert" || x.status === "watch") && x.dir === "low");
   const hiO = r.res.filter(x => x.group === "opportunist" && (x.status === "alert" || x.status === "watch") && x.dir === "high");
   const other = r.res.filter(x => x.group === "other" && x.status === "watch");
-  const p = [`The profile scores <b>${r.total.toFixed(0)} out of 100</b>, higher than ${Math.round(r.scorePct)}% of healthy reference chicks.`];
-  p.push(lowB.length ? `Helpful bacteria lower than typical: ${list(it(lowB))}.` : "Helpful and short-chain fatty acid producing bacteria are at or above their typical level.");
-  p.push(hiO.length ? `Bacteria to watch higher than typical: ${list(it(hiO))}.` : "None of the bacteria to watch are raised.");
+  const p = [`The profile scores <b>${r.total.toFixed(0)} out of 100</b>, higher than ${Math.round(r.scorePct)}% of healthy reference chickens.`];
+  p.push(lowB.length ? `Beneficial targets lower than typical: ${list(it(lowB))}.` : "Beneficial and short-chain fatty acid producing targets are at or above their typical level.");
+  p.push(hiO.length ? `Opportunistic targets higher than typical: ${list(it(hiO))}.` : "No opportunistic target is raised.");
   if (other.length) p.push(`Unusual levels of ${list(it(other))}.`);
-  p.push(`Panel diversity is at the ${ord(r.shannonPct)} percentile and the overall mix is ${r.distanceCat.toLowerCase()} distance from healthy chicks.`);
+  p.push(`Target panel coverage is ${Math.round(r.coverage)}% and the standardized panel distance from healthy chickens is ${r.distanceCat.toLowerCase()}.`);
   p.push(r.status === "good" ? "<b>Next step:</b> keep current management and test again in 2–3 weeks." : r.status === "watch" ? "<b>Next step:</b> test again in 1–2 weeks and review feed, water and litter." : "<b>Next step:</b> repeat the test to rule out a lab error, then talk to your flock veterinarian before changing anything.");
   return p.join(" ");
 }
+function pathogenBox(r) {
+  const cls = c => c === "Detected" ? "alert" : c === "Inconclusive" ? "watch" : c === "Not detected" ? "good" : "na";
+  const any = r.pathogens.some(p => p.call === "Detected");
+  return `<section class="s-sec"><h3>Food-safety pathogens (reported separately, not part of the score)</h3>
+    <div class="patho">${r.pathogens.map(p => `<div class="${cls(p.call)}"><i class="tx">${p.taxon}</i><b>${p.call}</b><span>${esc(p.why)}</span></div>`).join("")}</div>
+    ${any ? `<div class="warn alertw"><b>Pathogen alert.</b> A food-safety pathogen was detected. This is independent of the balance score and needs a confirmatory test (culture or specific PCR) before any action.</div>` : ""}</section>`;
+}
 function sheetHTML(s, r) {
   const m = s.meta, facts = FACTS.filter(([k]) => m[k]).slice(0, 16), today = new Date().toISOString().slice(0, 10), W = GG.WEIGHTS, NP = 3;
+  const am = GG.ageMatch(s.age);
   const head = n => `<div class="s-head"><div class="word">Green<span>Gut</span></div>
-      <div><div class="s-title">Gut Health Report Card</div><div class="s-sub">Compared with ${REF.n} healthy chicks aged 0–21 days · 20-target qPCR panel</div></div>
+      <div><div class="s-title">qPCR Gut Health Report</div><div class="s-sub">${REF.n} healthy reference chickens (${esc(M.label)}) · 20 bacterial targets/groups</div></div>
       <div class="s-id"><div class="mono">${esc(m.Sample_ID)}</div><div class="s-sub">page ${n} of ${NP} · ${today}</div></div></div>`;
-  const foot = `<div class="s-foot"><span>Prototype reference population, pending prospective field validation. ${esc(BUILD.short)}. Describes a sample; not a diagnosis.</span><span class="mono">greengut v0.2</span></div>`;
-  const comps = [["R", "Reference conformity"], ["B", "Beneficial bacteria"], ["O", "Opportunistic bacteria"], ["D", "Targeted panel diversity"], ["C", "Community similarity"]]
-    .map(([k, l]) => `<div class="comp"><span class="lab">${l}</span><span class="val">${r.comp[k].toFixed(0)}</span><div class="meter"><i style="width:${Math.max(0, Math.min(100, r.comp[k]))}%"></i></div><span class="w">counts ${Math.round(W[k] * 100)}%</span></div>`).join("");
+  const foot = `<div class="s-foot"><span><b>Prototype research reference</b>, pending field validation. ${esc(M.calibration)} Describes a sample; not a diagnosis.</span><span class="mono">Platform ${V.platform} · ${esc(V.algorithm)}<br>Baseline ${esc(M.baseline_id)}<br>${esc(V.panel)}</span></div>`;
+  const CL = { R: "Reference conformity", B: "Beneficial targets", O: "Opportunistic targets", D: "Target panel coverage", C: "Standardized panel distance" };
+  const comps = Object.keys(CL).map(k => { const v = r.comp[k]; return `<div class="comp"><span class="lab">${CL[k]}</span><span class="val">${v == null ? "–" : v.toFixed(0)}</span><div class="meter"><i style="width:${v == null ? 0 : Math.max(0, Math.min(100, v))}%"></i></div><span class="w">${v == null ? "not available" : `weight ${Math.round(W[k] * 100)}%`}</span></div>`; }).join("");
   const warns = [];
-  const age = parseFloat(m.Age_Days); if (!isNaN(age) && age > 21) warns.push(`This sample is from ${age}-day-old birds. The reference covers chicks aged 0–21 days, so read the result with care.`);
-  const qcAlert = s.qc.filter(q => q[0] === "alert"); qcAlert.forEach(q => warns.push(q[1]));
+  if (am.level === "Low") warns.push(`Age outside the reference. ${am.note}`);
+  r.qcFail.forEach(q => warns.push(`QC failure: ${q}`));
   const zones = [{ from: 0, to: REF.cut.P10, fill: SC.badT }, { from: REF.cut.P10, to: REF.cut.P25, fill: SC.watchT }, { from: REF.cut.P25, to: 100, fill: SC.goodT }];
+  const st = r.status === "attention" ? "deviant" : r.status === "noscore" ? "na" : r.status;
   const p1 = `<article class="sheet">${head(1)}
     ${facts.length ? `<dl class="sfacts">${facts.map(([k, l]) => `<div><dt>${l}</dt><dd>${esc(m[k])}</dd></div>`).join("")}</dl>` : ""}
-    <section class="s-hero"><div style="display:flex;flex-direction:column;align-items:center;gap:6px">${gauge(r.total, r.status)}<span class="status ${r.status === "attention" ? "deviant" : r.status}">${STATUS[r.status]}</span><span class="s-sub">Microbiome Balance Score</span></div>
-      <div style="display:flex;flex-direction:column;gap:12px"><p class="verdict">${message(r, s)}</p>
-        <dl class="inv"><div><dt>Community similarity to healthy reference</dt><dd>${Math.round(r.similarity)}%</dd></div><div><dt>Distance from healthy centroid</dt><dd>${r.distanceCat}</dd></div><div><dt>Dysbiosis risk</dt><dd>${r.risk}</dd></div></dl></div></section>
+    <section class="s-hero"><div style="display:flex;flex-direction:column;align-items:center;gap:6px">${gauge(r.total, r.status)}<span class="status ${st}">${STATUS[r.status]}</span><span class="s-sub">Microbiome Balance Score</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px"><p class="verdict">${message(r)}</p>
+        <dl class="inv"><div><dt>Panel distance from healthy reference</dt><dd>${r.total == null ? "Not assessed" : r.distanceCat}</dd></div><div><dt>Age-match confidence</dt><dd>${am.level}</dd></div><div><dt>Dysbiosis risk</dt><dd>${r.risk}</dd></div></dl></div></section>
     ${warns.map(w => `<div class="warn">${esc(w)}</div>`).join("")}
-    <p class="means"><b>How to read this.</b> The score combines five checks into one number from 0 to 100. Every healthy reference chick was scored the same way: the green zone below is where the top 75% of them land, amber the next 15%, red the lowest 10%.</p>
-    <section class="s-sec"><h3>Your score among ${REF.n} healthy chicks</h3>${histo({ values: REF.scores, sample: r.total, zones, xmin: 20, xmax: 100, bins: 40, w: 690, h: 130, xlab: "Score of each healthy reference chick" })}
-      <div class="legend"><span><i class="sw" style="background:${SC.goodT}"></i>looks normal</span><span><i class="sw" style="background:${SC.watchT}"></i>keep an eye on it</span><span><i class="sw" style="background:${SC.badT}"></i>needs attention</span></div></section>
-    <section class="s-sec"><h3>The five checks behind the score</h3><div class="comps">${comps}</div>
-      <p class="means"><b>What each check means.</b> <b>Reference conformity:</b> share of the 20 bacteria in their reference range (watch counts half). <b>Beneficial:</b> the same, for beneficial and short-chain fatty acid producing bacteria. <b>Opportunistic:</b> the same, for opportunists and pathogens. <b>Diversity:</b> 20-taxa Shannon index, lowered only when below a typical healthy chick. <b>Similarity:</b> Aitchison (CLR) distance of the whole profile from the healthy centroid.</p></section>
+    ${pathogenBox(r)}
+    ${r.total != null ? `<section class="s-sec"><h3>Your score among ${REF.scores.length} healthy reference chickens</h3>${histo({ values: REF.scores, sample: r.total, zones, xmin: 20, xmax: 100, bins: 40, w: 690, h: 120, xlab: "Score of each healthy reference chicken" })}
+      <div class="legend"><span><i class="sw" style="background:${SC.goodT}"></i>looks normal (≥ reference P25)</span><span><i class="sw" style="background:${SC.watchT}"></i>keep an eye on it (P10–P25)</span><span><i class="sw" style="background:${SC.badT}"></i>needs attention (&lt; P10)</span></div></section>` : ""}
+    ${r.total == null ? "" : `<section class="s-sec"><h3>The five checks behind the score</h3><div class="comps">${comps}</div>
+      <p class="means"><b>What each check means.</b> <b>Reference conformity:</b> weighted share of scored targets in their reference range (watch counts half). <b>Beneficial:</b> the same for beneficial targets, which lose points mainly when low. <b>Opportunistic:</b> the same for opportunistic targets, which lose points mainly when high. <b>Coverage:</b> share of the commonly present targets that were quantified, against the reference median. <b>Distance:</b> how far the quantified loads sit from the healthy medians in robust standard units. Only targets with ≥ ${QMIN} quantified reference values count; overlapping targets carry half weight; pathogens and generic Clostridium are excluded.</p></section>`}
     ${foot}</article>`;
   const p2 = `<article class="sheet">${head(2)}
-    <section class="s-sec"><h3>Every bacterium against healthy chicks</h3>
-      <div class="legend"><span><i class="sw" style="background:${SC.band0}"></i>P5–P95</span><span><i class="sw" style="background:${SC.band}"></i>P10–P90 usual range</span><span><i class="sw" style="background:${SC.band2}"></i>P25–P75</span><span><i class="sw" style="background:${SC.ink2};width:2px;height:10px"></i>median</span><span><i class="sw" style="background:${SC.yolk};border-radius:50%;width:9px;height:9px"></i>your sample</span></div>
+    <section class="s-sec"><h3>Every target against the healthy reference</h3>
+      <div class="legend"><span><i class="sw" style="background:${SC.band};"></i>P10–P90 reference range</span><span><i class="sw" style="background:${SC.band2}"></i>P25–P75</span><span><i class="sw" style="background:${SC.ink2};width:2px;height:10px"></i>P50</span><span><i class="sw" style="background:${SC.band0};border:1px dashed ${SC.band2}"></i>P5–P95 (exploratory)</span><span><i class="sw" style="background:${SC.yolk};border-radius:50%;width:9px;height:9px"></i>your sample</span><span>½ = half weight (overlapping target)</span></div>
       ${ranges(r)}
-      <p class="means"><b>How to read this.</b> <b>Amount</b> is the estimated share of total bacteria within the targeted panel, not of the whole microbiome (ND = not detected, &lt;LOQ = too little to measure). <b>Pctl</b> is the percentile: the share of healthy chicks with less of this bacterium (pctl 70 = more than 70% of healthy chicks). <b>Found in</b> is how often healthy chicks carry it. Each bacterium has its own rule: for helpful bacteria a low level matters most, for bacteria to watch a high level matters most. Not-detected results are never counted as zero. <b>No usual range yet</b> means fewer than 10 healthy chicks had a measurable amount, so that bacterium is shown but not scored.</p></section>
+      <p class="means"><b>How to read this.</b> <b>Load %</b> is the estimated load relative to the universal 16S (total bacteria) assay, not a true percentage of the whole microbiome; the 20 values are not forced to add up to 100% (here they sum to ${pctS(r.panelSum)}%). ND, &lt;LOD and &lt;LOQ are never counted as zero. <b>Pctl</b> is the share of quantified reference values below your sample; in brackets when the target is shown but not scored. <b>Ref N q/d/tot</b> is quantified / detected / total reference chickens. A target enters the score only with ≥ ${QMIN} quantified reference values. P5 and P95 are exploratory and never set a status.</p></section>
     ${foot}</article>`;
   const flagged = r.res.filter(x => x.status === "watch" || x.status === "alert");
+  const excl = r.res.filter(x => x.status === "qc");
   const fl = flagged.length ? flagged.map(x => `<div class="flagrow"><div><i class="tx">${x.taxon}</i><br><span class="s-sub">${GROUPNAME[x.group]}</span></div>
       <div><b>${esc(x.label)}${x.rank != null ? ` · percentile ${Math.round(x.rank)}` : ""}.</b> ${x.dir ? GG.ABOUT(x.taxon, x.dir) : ""}</div><div style="text-align:right"><span class="chip-s ${x.status}">${ST_TXT[x.status]}</span></div></div>`).join("")
-    : `<p class="s-sub">No bacteria are flagged.</p>`;
-  const qcItems = s.qc.length ? s.qc : [["good", "No quality issues found in the lab values supplied."]];
-  const qcHTML = `<ul class="qcl">${qcItems.map(([lv, t]) => `<li><span style="color:${SC[lv] || SC.ink2}">●</span><span>${esc(t)}</span></li>`).join("")}</ul>`;
+    : `<p class="s-sub">No scored target is flagged.</p>`;
+  const ctl = s.controls.map(([n, t, lv]) => `<li><span style="color:${SC[lv]}">●</span><span><b>${n}:</b> ${esc(t)}</span></li>`).join("");
+  const qcItems = r.qcFail.map(q => ["alert", q]).concat(s.qc);
+  const qcHTML = `<ul class="qcl">${ctl}${(qcItems.length ? qcItems : [["good", "No replicate, efficiency or assay problems found."]]).map(([lv, t]) => `<li><span style="color:${SC[lv] || SC.ink2}">●</span><span>${esc(t)}</span></li>`).join("")}</ul>`;
   const p3 = `<article class="sheet">${head(3)}
-    <section class="s-sec"><h3>What the flagged bacteria may mean</h3><div>${fl}</div>
-      <p class="means"><b>How to read this.</b> These notes describe what a low or high level usually points to. One flag on its own is rarely a problem; patterns across several bacteria, together with what you see in the flock, matter more.</p></section>
+    <section class="s-sec"><h3>What the flagged targets may mean</h3><div>${fl}</div>
+      ${excl.length ? `<p class="means"><b>Excluded from the score by QC:</b> ${excl.map(x => `<i>${x.taxon}</i> (${esc(x.label.replace(/\.$/, ""))})`).join("; ")}</p>` : ""}
+      <p class="means"><b>How to read this.</b> These notes describe what a low or high level usually points to. One flag on its own is rarely a problem; patterns across several targets, together with what you see in the flock, matter more.</p></section>
     <div class="two">
-      <section class="s-sec"><h3>Targeted panel diversity (20-taxa Shannon index)</h3>
-        ${histo({ values: REF.hRef, sample: r.shannon, xmin: 0, xmax: Math.log(20), bins: 20, xlab: "Variety of healthy chicks", fmt: v => v.toFixed(1) })}
-        <p class="means">More even mixes score higher. Your sample is more varied than ${Math.round(r.shannonPct)}% of healthy chicks. This is variety within the 20-bacteria panel, not the whole gut.</p></section>
-      <section class="s-sec"><h3>Panel community distance</h3>
-        ${histo({ values: REF.dRef, sample: r.distance, xmin: 0, xmax: Math.max(r.distance, ...REF.dRef) * 1.05, bins: 22, xlab: "Distance of healthy chicks from their centre", fmt: v => v.toFixed(1) })}
-        <p class="means">How different the overall mix is from a typical healthy chick. Further right is more different. Your sample is ${Math.round(r.similarity)}% similar on this scale.</p></section>
+      <section class="s-sec"><h3>Target panel coverage</h3>
+        ${histo({ values: REF.covRef, sample: r.coverage, xmin: 0, xmax: 100, bins: 20, xlab: "Coverage of healthy reference chickens (%)", fmt: v => v.toFixed(0) })}
+        <p class="means">Share of the ${REF.core.length} commonly present targets that were quantified in your sample (${isNaN(r.coverage) ? "not available" : Math.round(r.coverage) + "%"}). The reference median is ${Math.round(r.coverageRef)}%. Overlapping targets carry half weight.</p></section>
+      <section class="s-sec"><h3>Standardized panel distance</h3>
+        ${histo({ values: REF.dRef, sample: r.distance, xmin: 0, xmax: Math.max(isNaN(r.distance) ? 0 : r.distance, ...REF.dRef) * 1.05, bins: 22, xlab: "Distance of healthy reference chickens", fmt: v => v.toFixed(1) })}
+        <p class="means">Root-mean-square of robust z-scores of log load (median and interquartile range of each target), over ${r.distanceN} quantified scored targets. Further right is more different from healthy chickens.${r.distancePct == null ? " Not available: fewer than 2 targets." : ""}</p></section>
     </div>
-    <section class="s-sec"><h3>Lab quality checks</h3>${qcHTML}
-      <p class="means">Replicates should agree within 0.5 cycles, assays should run at 90–110% efficiency, and the negative control and extraction blank should stay clean.</p></section>
+    <section class="s-sec"><h3>Laboratory quality control</h3>${qcHTML}
+      <p class="means">Each control is checked separately. A failed control, a failed total-bacteria assay or PCR inhibition stops the score. A target with replicates more than 0.5 Ct apart, a single replicate, or missing or out-of-range efficiency (90–110%) is excluded from the score. Efficiency is never assumed to be 100%.</p></section>
+    <section class="s-sec"><h3>About the reference</h3><p class="means">${esc(M.healthy)}. ${REF.n} chickens from ${M.studies} studies; farms: ${esc(M.farms).toLowerCase()}; median recorded age ${M.median_age} d (${esc(M.age_note)}). Method: ${esc(M.method)}. ${esc(M.calibration)} Age-match confidence for this sample: <b>${am.level}</b>. ${esc(am.note)}</p></section>
     ${foot}</article>`;
   return p1 + p2 + p3;
 }
 function render() {
-  $("#batch").innerHTML = samples.map((s, i) => { const r = GG.score(s.obs);
-    return `<button data-i="${i}" aria-pressed="${i === current}"><span class="mono">${esc(s.meta.Sample_ID)}</span><span class="dot ${r.status === "attention" ? "deviant" : r.status}" title="${STATUS[r.status]}"></span><span class="mono">${r.total.toFixed(0)}</span></button>`; }).join("");
+  const scoreOf = s => GG.score(s.obs, { qcFail: s.qcFail });
+  $("#batch").innerHTML = samples.map((s, i) => { const r = scoreOf(s);
+    return `<button data-i="${i}" aria-pressed="${i === current}"><span class="mono">${esc(s.meta.Sample_ID)}</span><span class="dot ${r.status === "attention" ? "deviant" : r.status === "noscore" ? "na" : r.status}" title="${STATUS[r.status]}"></span><span class="mono">${r.total == null ? "QC" : r.total.toFixed(0)}</span></button>`; }).join("");
   $("#batch").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { current = +b.dataset.i; render(); }));
-  const s = samples[current], r = GG.score(s.obs);
-  $("#report-title").textContent = `Report card for ${s.meta.Sample_ID}`;
-  $("#report-sub").textContent = `${STATUS[r.status]} · score ${r.total.toFixed(0)}/100 · dysbiosis risk ${r.risk.toLowerCase()}.` + (samples.length > 1 ? " Pick another sample from “Your samples”." : "");
+  const s = samples[current], r = scoreOf(s);
+  $("#report-title").textContent = `Report for ${s.meta.Sample_ID}`;
+  $("#report-sub").textContent = (r.total == null ? "No score: the sample failed lab QC." : `${STATUS[r.status]} · score ${r.total.toFixed(0)}/100 · dysbiosis risk ${r.risk.toLowerCase()}.`) + (r.pathogens.some(p => p.call === "Detected") ? " Pathogen alert: see page 1." : "") + (samples.length > 1 ? " Pick another sample from “Your samples”." : "");
   $("#sheets").innerHTML = sheetHTML(s, r); fitSheets();
 }
 function fitSheets() { const box = $("#sheets"), w = box.parentElement.clientWidth; box.style.zoom = w && w < 800 ? (w / 800).toFixed(3) : ""; }
@@ -875,21 +990,25 @@ $("#dl-pdf").addEventListener("click", async e => {
   try {
     if (!window.html2canvas || !window.jspdf) throw new Error("The PDF tools did not load. Check your connection and reload the page.");
     const { jsPDF } = window.jspdf, pdf = new jsPDF({ unit: "pt", format: "a4" });
+    pdf.setProperties({ title: `GreenGut qPCR Gut Health Report ${samples[current].meta.Sample_ID}`, subject: `Platform ${V.platform}; ${V.algorithm}; baseline ${M.baseline_id}; ${V.panel}`, creator: "GreenGut" });
     const sheets = [...document.querySelectorAll("#sheets .sheet")]; $("#sheets").style.zoom = "";
     for (let i = 0; i < sheets.length; i++) { const cv = await html2canvas(sheets[i], { scale: 2, backgroundColor: "#ffffff", width: 794, windowWidth: 1200 });
       if (i) pdf.addPage(); pdf.addImage(cv.toDataURL("image/jpeg", .92), "JPEG", 0, 0, 595.28, Math.min(841.89, 595.28 * cv.height / cv.width)); }
     const id = String(samples[current].meta.Sample_ID).replace(/[^\w.-]+/g, "_");
-    if (await saveFile(`GreenGut_report_${id}.pdf`, pdf.output("blob")) === "saved") say(`Report card for ${esc(samples[current].meta.Sample_ID)} saved.`);
+    if (await saveFile(`GreenGut_report_${id}.pdf`, pdf.output("blob")) === "saved") say(`Report for ${esc(samples[current].meta.Sample_ID)} saved.`);
   } catch (err) { say(esc(err.message || "The PDF could not be made."), true); }
   fitSheets(); btn.disabled = false; btn.textContent = old;
 });
 $("#dl-csv").addEventListener("click", async () => {
-  const head = ["Sample_ID", "Score", "Verdict", "Dysbiosis_risk", "Better_than_pct_of_reference", "R_reference_conformity", "B_beneficial", "O_opportunistic", "D_diversity", "C_similarity", "Shannon_H", "Aitchison_distance"]
-    .concat(GG.TAXA.flatMap(t => [t + "_share_pct", t + "_percentile", t + "_status"]));
+  const head = ["Sample_ID", "Score", "Verdict", "Dysbiosis_risk", "Age_match_confidence", "QC_failure", "Better_than_pct_of_reference", "R_reference_conformity", "B_beneficial", "O_opportunistic", "D_panel_coverage", "C_panel_distance_similarity",
+    "Panel_coverage_pct", "Standardized_panel_distance", "Salmonella_call", "Campylobacter_call", "Platform", "Algorithm", "Baseline", "Assay_panel"]
+    .concat(GG.TAXA.flatMap(t => [t + "_load_pct_vs_16S", t + "_percentile", t + "_status"]));
   const q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v;
-  const rows = samples.map(s => { const r = GG.score(s.obs);
-    return [s.meta.Sample_ID, r.total.toFixed(1), STATUS[r.status], r.risk, r.scorePct.toFixed(0), ...["R", "B", "O", "D", "C"].map(k => r.comp[k].toFixed(0)), r.shannon.toFixed(3), r.distance.toFixed(3)]
-      .concat(r.res.flatMap(x => [x.obs.state === "quant" ? x.obs.pct.toPrecision(4) : x.obs.state.toUpperCase(), x.rank != null ? x.rank.toFixed(0) : "", ST_TXT[x.status]])).map(q).join(","); });
+  const f = (v, d = 0) => v == null || isNaN(v) ? "" : v.toFixed(d);
+  const rows = samples.map(s => { const r = GG.score(s.obs, { qcFail: s.qcFail });
+    return [s.meta.Sample_ID, f(r.total, 1), STATUS[r.status], r.risk, GG.ageMatch(s.age).level, r.qcFail.join(" | "), f(r.scorePct), ...["R", "B", "O", "D", "C"].map(k => f(r.comp[k])),
+      f(r.coverage, 1), f(r.distance, 3), r.pathogens[0].call, r.pathogens[1].call, V.platform, V.algorithm, M.baseline_id, V.panel]
+      .concat(r.res.flatMap(x => [x.obs.state === "quant" ? x.obs.pct.toPrecision(4) : x.obs.state.toUpperCase(), x.rank != null ? x.rank.toFixed(0) : "", x.group === "pathogen" ? r.pathogens.find(p => p.taxon === x.taxon).call : ST_TXT[x.status]])).map(q).join(","); });
   if (await saveFile("GreenGut_results.csv", head.join(",") + "\n" + rows.join("\n") + "\n") === "saved") say("Results table saved.");
 });
 // ---------- hero: amplification curves from the example file ----------
@@ -900,7 +1019,7 @@ function drawAmp() {
   const tot = mean(rec.Total_Bacteria_Ct_1, rec.Total_Bacteria_Ct_2);
   const cand = GG.TAXA.map((t, j) => ({ t, ct: mean(rec[t + "_Ct_1"], rec[t + "_Ct_2"]), pct: smp.obs[j].state === "quant" ? smp.obs[j].pct : null })).filter(d => d.ct != null && d.pct != null).sort((a, b) => a.ct - b.ct);
   const pick = cand.length <= 5 ? cand : [0, .25, .5, .75, 1].map(f => cand[Math.round(f * (cand.length - 1))]).filter((d, i, a) => a.indexOf(d) === i);
-  const series = [{ t: "Total bacteria", ct: tot, pct: 100, col: "var(--ink)", P: 1 }].concat(pick.map((d, i) => ({ ...d, col: `var(--c${i + 1})`, P: .92 - i * .06 })));
+  const series = [{ t: "Universal 16S", ct: tot, pct: 100, col: "var(--ink)", P: 1 }].concat(pick.map((d, i) => ({ ...d, col: `var(--c${i + 1})`, P: .92 - i * .06 })));
   const W = 560, H = 250, L = 52, R = 12, T = 14, B = 36, iw = W - L - R, ih = H - T - B, TH = .1, k = 1.25;
   const X = c => L + c / 40 * iw, Y = f => T + ih - f / 1.05 * ih;
   let g = "";
@@ -913,20 +1032,18 @@ function drawAmp() {
   series.forEach(s => {
     const m = s.ct + k * Math.log(s.P / TH - 1); let d = "";
     for (let c = 0; c <= 40; c += .25) { const f = s.P / (1 + Math.exp(-(c - m) / k)); d += (c ? "L" : "M") + X(c).toFixed(1) + "," + Y(f).toFixed(1); }
-    g += `<path d="${d}" fill="none" style="stroke:${s.col}" stroke-width="${s.t === "Total bacteria" ? 2.4 : 1.8}"/>`;
+    g += `<path d="${d}" fill="none" style="stroke:${s.col}" stroke-width="${s.t === "Universal 16S" ? 2.4 : 1.8}"/>`;
     g += `<circle cx="${X(s.ct)}" cy="${Y(TH)}" r="3.2" style="fill:${s.col}" stroke="var(--surface)" stroke-width="1"/>`;
   });
   $("#amp-chart").innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Amplification curves for the example sample">${g}</svg>`;
-  $("#amp-table").innerHTML = `<table><thead><tr><th>Assay</th><th>Ct</th><th>Share</th></tr></thead><tbody>${series.map(s => `<tr><td><i style="background:${s.col}"></i>${s.t === "Total bacteria" ? '<span style="font-family:var(--f-body);font-style:normal">Total bacteria</span>' : s.t}</td><td>${s.ct.toFixed(2)}</td><td>${s.t === "Total bacteria" ? "100%" : pctF(s.pct)}</td></tr>`).join("")}</tbody></table>`;
+  $("#amp-table").innerHTML = `<table><thead><tr><th>Assay</th><th>Ct</th><th>Load vs 16S</th></tr></thead><tbody>${series.map(s => `<tr><td><i style="background:${s.col}"></i>${s.t === "Universal 16S" ? '<span style="font-family:var(--f-body);font-style:normal">Universal 16S</span>' : s.t}</td><td>${s.ct.toFixed(2)}</td><td>${s.t === "Universal 16S" ? "reference" : pctF(s.pct)}</td></tr>`).join("")}</tbody></table>`;
   const age = rec.Age_Days ? `${rec.Age_Days}-day-old ${String(rec.Broiler_Layer || "bird").toLowerCase()}s` : "a flock";
-  $("#amp-cap").textContent = `Example sample ${rec.Sample_ID}, ${age}: the total-bacteria assay and ${pick.length} of the 20 targets, mean of duplicate wells. Curves are drawn from the Ct values in our example file.`;
-  // submission sheet examples
+  $("#amp-cap").textContent = `Example sample ${rec.Sample_ID}, ${age}: the universal 16S assay and ${pick.length} of the 20 targets, mean of duplicate wells. Curves are drawn from the Ct values in our example file.`;
   document.querySelectorAll("#spec-body tr").forEach(tr => { const v = tr.dataset.c.split("|").map(c => rec[c] ?? "").filter(x => x !== ""); tr.children[1].textContent = v.join(", ") || "–"; });
 }
 drawAmp();
 drawExplorer();
 })();
 </script>
-
 </body>
 </html>
