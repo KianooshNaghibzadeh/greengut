@@ -257,6 +257,10 @@ svg.chart text{font-family:var(--f-data)}
 .cal{font-size:.8rem;color:var(--ink-2);border-left:3px solid var(--yolk);padding-left:8px}
 .ver{font-family:var(--f-data);font-size:.74rem;color:var(--ink-2)}
 .s-foot .mono{text-align:right;line-height:1.35;flex:0 0 auto;white-space:nowrap}
+
+.ico{border-radius:3px}
+.cols .panel h3{margin-bottom:14px}
+@media (max-width:760px){.cols{grid-template-columns:minmax(0,1fr)}}
 </style>
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
@@ -270,7 +274,7 @@ svg.chart text{font-family:var(--f-data)}
       <div class="word">Green<span>Gut</span></div>
     </div>
     <nav class="nav" aria-label="Sections">
-      <a href="#explore">Healthy chicks</a><a href="#send">What to send</a><a href="#card-info">The report card</a><a href="fastq.html" title="Same report with the reference rebuilt from raw FASTQ reads">FASTQ reference</a><a href="#report" id="nav-report" hidden>Your report</a>
+      <a href="#explore">Healthy chicks</a><a href="#overview">How it works</a><a href="#send">What to send</a><a href="#card-info">The report card</a><a href="fastq.html" title="Same report with the reference rebuilt from raw FASTQ reads">FASTQ reference</a><a href="#report" id="nav-report" hidden>Your report</a>
     </nav>
   </header>
 
@@ -338,6 +342,17 @@ svg.chart text{font-family:var(--f-data)}
               <div><h3>Every quantified reference value</h3><div id="ex-strip"></div><p class="cap" id="ex-cap"></p></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="sec" id="overview">
+        <header>
+          <h2>What you upload and what you get</h2>
+          <p>One file from your lab in, one report per sample out. Everything runs in your browser; your file is not uploaded anywhere.</p>
+        </header>
+        <div class="cols">
+          <div class="panel"><h3>What you upload</h3><ul class="list"><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6"/></svg></span><div><b>A CSV spreadsheet</b><span>One row per sample, saved from Excel as CSV. Start from our blank form. The file is checked first, and any problem is listed with its row number and column name.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6l-4 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-4-9V3"/><path d="M8 3h8"/></svg></span><div><b>qPCR results for 20 bacterial targets/groups</b><span>Duplicate Ct values for each target and for the universal 16S (total bacteria) assay, with each assay’s efficiency. Write ND, &lt;LOD or &lt;LOQ exactly as the lab reports it; these are never counted as zero.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></span><div><b>Lab controls</b><span>Negative control, extraction blank, positive control and inhibition shift. Each is checked separately, and a failed control means no score is given.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/></svg></span><div><b>Flock details</b><span>Age in days is required. Bird type, breed, farm, feed, probiotic and antibiotic use help you read the result.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4"/></svg></span><div><b>Optional performance figures</b><span>FCR, mortality, uniformity, litter and diarrhoea are printed on the report next to the result.</span></div></li></ul></div>
+          <div class="panel"><h3>What you get</h3><ul class="list"><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l4-5"/></svg></span><div><b>A Microbiome Balance Score out of 100</b><span>With a plain verdict (looks normal, keep an eye on it, or needs attention), a dysbiosis risk level and an age-match confidence. No score is produced if lab QC fails.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h13"/></svg></span><div><b>Each target against healthy chickens</b><span>Its load relative to universal 16S, its percentile and the P10–P90 reference range, with how many reference chickens were tested, detected and quantified. Only targets with at least 30 quantified reference values are scored.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg></span><div><b>A separate food-safety panel</b><span>Salmonella and Campylobacter reported as detected, not detected or inconclusive, with their own alert and a call for a confirmatory test. They never change the score.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/></svg></span><div><b>Coverage and distance</b><span>How many of the commonly present targets were measured, and how far the whole panel sits from healthy chickens.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg></span><div><b>A lab quality check</b><span>Replicate agreement (within 0.5 Ct), assay efficiency (90–110%) and every control, listed one by one.</span></div></li><li><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></span><div><b>A PDF to keep or share</b><span>Every chart comes with a short explanation, so your vet or nutritionist can read it too. Each page records the platform, algorithm, baseline and assay panel versions.</span></div></li></ul></div>
         </div>
       </section>
 
